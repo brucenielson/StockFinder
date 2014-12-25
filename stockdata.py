@@ -28,23 +28,32 @@ ALL_FIELDS = QUOTES_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCKS_FIELDS
 
 def create_database():
     # Create or open the database
-    conn = sqlite.connect("stocksdata.db")
+    db = sqlite.connect("stocksdata.db")
 
+    # if database already exists, drop all tables first
+    db.execute('drop index if exists symbolx')
+    db.execute('drop index if exists labelx')
+    db.execute('drop table if exists stocklist')
+    db.execute('drop table if exists dividend_history')
+    db.execute('drop table if exists label')
+    db.execute('drop table if exists url')
+
+    
     # create the tables
-    conn.execute('create table stocklist(symbol, industry,'\
+    db.execute('create table stocklist(symbol, industry,'\
                         + 'sector, start, full_time_employees, has_dividends, '\
                         + 'last_dividend_date, last_updated)')
-    conn.execute('create table dividend_history (stockid, dividends, date)')
-    conn.execute('create table label(stockid, label)')
-    conn.execute('create table url(stockid, url)')
-    conn.execute('create index symbolx on stocklist(symbol)')
-    conn.execute('create index labelx on label(label)')
+    db.execute('create table dividend_history (stockid, dividends, date)')
+    db.execute('create table label(stockid, label)')
+    db.execute('create table url(stockid, url)')
+    db.execute('create index symbolx on stocklist(symbol)')
+    db.execute('create index labelx on label(label)')
+    db.commit()
+    db.close()
 
-    conn.close()
 
 
-
-def obtain_parse_wiki_snp500():
+def get_wikipedia_snp500_list():
     """Download and parse the Wikipedia list of S&P500 
     constituents using requests and libxml.
 
@@ -55,10 +64,43 @@ def obtain_parse_wiki_snp500():
 
     # Use libxml to download the list of S&P500 companies and obtain the symbol table
     page = lxml.html.parse('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-    symbolslist = page.xpath('//table[1]/tr/td[1]/a/text()')
+    symbol_list = page.xpath('//table[1]/tr/td[1]/a/text()')
 
-    return symbolslist
+    return symbol_list
 
+
+# Takes a list of symbols in format ['AAPL', 'MSFT'] and stores them in the db
+def store_stock_list(symbol_list):
+    if type(symbol_list) != type(list()):
+        raise Exception("symbol_list must be a list")
+
+    # get the list of stocks currently in the database to compare to the passed list
+    db = sqlite.connect("stocksdata.db")
+    db_list = db.execute('select symbol from stocklist')
+    new_symbols = [symbol for symbol in symbol_list if symbol not in db_list]
+    #print new_symbols
+
+    tuple_list = []
+    for symbol in new_symbols:
+          tuple_symbol = (symbol,)
+          tuple_list.append(tuple_symbol)
+
+    print tuple_list
+        
+    # Do insert for new symbols that we want to store
+    db.executemany("insert into stocklist(symbol) values (?)", tuple_list)
+    db.commit()
+    db.close()
+
+
+
+def retrieve_stocks_from_db():
+    db = sqlite.connect("stocksdata.db")
+    cursor = db.cursor()
+    cursor.execute("select * from stocklist")
+    result = cursor.fetchall()
+    db.close()
+    return result
 
 
 

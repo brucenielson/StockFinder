@@ -4,6 +4,7 @@ import datetime
 import time
 import lxml.html
 import sqlite3 as sqlite
+import os
 
 KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerShare, MarketCap, " \
          + "PriceBook, EBITDA, PayoutRatio, OperatingCashFlow, Beta, ReturnonAssests, "\
@@ -28,7 +29,7 @@ ALL_FIELDS = QUOTES_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCKS_FIELDS
 
 def create_database():
     # Create or open the database
-    db = sqlite.connect("stocksdata.db")
+    db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
 
     # if database already exists, drop all tables first
     db.execute('drop index if exists symbolx')
@@ -75,17 +76,14 @@ def store_stock_list(symbol_list):
         raise Exception("symbol_list must be a list")
 
     # get the list of stocks currently in the database to compare to the passed list
-    db = sqlite.connect("stocksdata.db")
+    db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
     db_list = db.execute('select symbol from stocklist')
     new_symbols = [symbol for symbol in symbol_list if symbol not in db_list]
-    #print new_symbols
 
     tuple_list = []
     for symbol in new_symbols:
           tuple_symbol = (symbol,)
           tuple_list.append(tuple_symbol)
-
-    print tuple_list
         
     # Do insert for new symbols that we want to store
     db.executemany("insert into stocklist(symbol) values (?)", tuple_list)
@@ -95,7 +93,7 @@ def store_stock_list(symbol_list):
 
 
 def retrieve_stocks_from_db():
-    db = sqlite.connect("stocksdata.db")
+    db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
     cursor = db.cursor()
     cursor.execute("select * from stocklist")
     result = cursor.fetchall()

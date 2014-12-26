@@ -511,6 +511,7 @@ def analyze_data(data):
         else:
             data[row]['IsDividend'] = False
 
+            
         print row + " - " + str(data[row]['IsDividend'])
             
 

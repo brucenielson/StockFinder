@@ -26,6 +26,17 @@ DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 
 ALL_FIELDS = QUOTES_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCKS_FIELDS
 
+# Order of fields in Stock List table
+SYMBOL = 0
+INDUSTRY = 1
+SECTOR = 2
+START = 3
+FULL_TIME_EMPLOYEES = 4
+HAS_DIVIDENDS = 5
+LAST_DIVIDEND_DATE = 6
+LAST_UPDATED = 7
+
+
 
 def create_database():
     # Create or open the database
@@ -70,6 +81,9 @@ def get_wikipedia_snp500_list():
     return symbol_list
 
 
+
+
+
 # Takes a list of symbols in format ['AAPL', 'MSFT'] and stores them in the db
 def store_stock_list(symbol_list):
     if type(symbol_list) != type(list()):
@@ -89,6 +103,37 @@ def store_stock_list(symbol_list):
     db.executemany("insert into stocklist(symbol) values (?)", tuple_list)
     db.commit()
     db.close()
+
+
+
+# Takes a stock data object and stores the stocks and some of the stock data.
+def store_stock_data(stock_data):
+    if type(stock_data) != type(dict()):
+        raise Exception("stock_data must be a dictionary.")
+
+    # get the list of stocks currently in the database to compare to the passed list
+    db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
+    db_stock_data = db.execute('select symbol, industry,'\
+                        + 'sector, start, full_time_employees, has_dividends, '\
+                        + 'last_dividend_date, last_updated from stocklist')
+
+    # Loop through each entry in the stock_data dictionary
+    # and compare it to the existing data to determine what should be saved.
+
+    # If it is not already in the database, do an insert.
+    # If it is, then do an update.
+    stored_symbols = [row[SYMBOL] for row in db_stock_data]
+    insert_values = []
+    update_values = []
+    for key in stock_data.keys():
+        if key not in stored_symbols:
+            # create list of new values to insert
+            insert_values.append(stock_data[key])
+        else:
+            # create list for potential updates
+            update_values.append(stock_data[key])
+            
+    return insert_values, update_values
 
 
 
@@ -798,7 +843,17 @@ def test_module():
 
 
 
+import unittest
 
+class FooTests(unittest.TestCase):
+
+    def testFoo(self):
+        self.failUnless(False)
+
+if __name__ == '__main__':
+    unittest.main()
+
+    
 
 
 

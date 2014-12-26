@@ -601,253 +601,221 @@ def get_any_data(symbol_list, table, fields="*"):
 
 
 
-
-
-#Unit Test get_quotes_data
-def unit_test_get_quotes_data():
-    # Test list of quotes with upper and lowercase symbols
-    quote_data = get_quotes_data(['aapl', 'T', 'MSFT'])
-    
-    try:
-        price = quote_data['AAPL']['LastTradePriceOnly']
-    except:
-        return False
-
-    if price <= 0.0:
-        return False
-
-    try:
-        price = quote_data['T']['LastTradePriceOnly']
-    except:
-        return False
-
-    if price <= 0.0:
-        return False
-
-    try:
-        price = quote_data['MSFT']['LastTradePriceOnly']
-    except:
-        return False
-
-    if price <= 0.0:
-        return False
-
-    found = True
-    try:
-        price = quote_data['WMT']['LastTradePriceOnly']
-    except:
-        found = False
-
-    if found == True:
-        return False
-
-    # Test a list of one, both upper and lowercase
-    quote_data = get_quotes_data(['aapl'])
-    
-    try:
-        price = quote_data['AAPL']['LastTradePriceOnly']
-    except:
-        return False
-
-    quote_data = get_quotes_data(['AAPL'])
-    
-    try:
-        price = quote_data['AAPL']['LastTradePriceOnly']
-    except:
-        return False
-
-    return True
-
-
-
-#Unit Test get_key_stats_data
-def unit_test_get_key_stats_data():
-    # Test list of quotes with upper and lowercase symbols
-    data = get_key_stats_data(['aapl', 'T', 'MSFT'])
-
-    try:
-        value = data['AAPL']['TotalDebt']
-    except:
-        return False
-
-    if value <= 0.0:
-        return False
-
-    try:
-        value = data['T']['TotalDebt']
-    except:
-        return False
-
-    if value <= 0.0:
-        return False
-
-    try:
-        value = data['MSFT']['TotalDebt']
-    except:
-        return False
-
-    if value <= 0.0:
-        return False
-
-    found = True
-    try:
-        value = data['WMT']['TotalDebt']
-    except:
-        found = False
-
-    if found == True:
-        return False
-
-    # Test a list of one, both upper and lowercase
-    data = get_key_stats_data(['aapl'])
-    
-    try:
-        value = data['AAPL']['TotalDebt']
-    except:
-        return False
-
-    data = get_key_stats_data(['AAPL'])
-    
-    try:
-        value = data['AAPL']['TotalDebt']
-    except:
-        return False
-
-    return True
-
-
-
-#Unit Test get_stocks_data
-def unit_test_get_stocks_data():
-    # Test list of quotes with upper and lowercase symbols
-    data = get_stocks_data(['aapl', 'T', 'MSFT'])
-    
-    try:
-        value = data['AAPL']['start']
-    except:
-        return False
-    
-    if value <= 0.0:
-        return False
-    
-    try:
-        value = data['T']['start']
-    except:
-        return False
-
-    if value <= 0.0:
-        return False
-
-    try:
-        value = data['MSFT']['start']
-    except:
-        return False
-
-    if value <= 0.0:
-        return False
-
-    found = True
-    try:
-        value = data['WMT']['start']
-    except:
-        found = False
-    
-    if found == True:
-        return False
-    
-    # Test a list of one, both upper and lowercase
-    data = get_stocks_data(['aapl'])
-    
-    try:
-        value = data['AAPL']['start']
-    except:
-        return False
-    
-    data = get_stocks_data(['AAPL'])
-    
-    try:
-        value = data['AAPL']['start']
-    except:
-        return False
-    
-    return True
-
-
-#Unit Test get_stocks_data
-def unit_test_get_dividend_history():
-    # Test list of quotes with upper and lowercase symbols
-    data = get_dividend_history(['aapl', 'T', 'MSFT'])
-    
-    try:
-        value = data['AAPL']['DividendHistory']
-    except:
-        return False
-    
-    if value <= 0.0:
-        return False
-    
-    try:
-        value = data['T']['DividendHistory']
-    except:
-        return False
-
-    if value <= 0.0:
-        return False
-
-    try:
-        value = data['MSFT']['DividendHistory']
-    except:
-        return False
-
-    if value <= 0.0:
-        return False
-
-    found = True
-    try:
-        value = data['WMT']['DividendHistory']
-    except:
-        found = False
-    
-    if found == True:
-        return False
-    
-    # Test a list of one, both upper and lowercase
-    data = get_dividend_history(['aapl'])
-    
-    try:
-        value = data['AAPL']['DividendHistory']
-    except:
-        return False
-    
-    data = get_dividend_history(['AAPL'])
-    
-    try:
-        value = data['AAPL']['DividendHistory']
-    except:
-        return False
-    
-    return True
-
-
-
-def test_module():
-    pass_tests = True
-    pass_tests = pass_tests & unit_test_get_key_stats_data()
-    pass_tests = pass_tests & unit_test_get_stocks_data()
-    pass_tests = pass_tests & unit_test_get_quotes_data()
-    pass_tests = pass_tests & unit_test_get_dividend_history()
-    return pass_tests
-
-
-
-
-
 import unittest
 
-class FooTests(unittest.TestCase):
+class test_stock_data_utilities(unittest.TestCase):
 
-    def testFoo(self):
-        self.failUnless(False)
+
+
+    #Unit Test get_stocks_data
+    def test_dividend_history(self):
+    # Test list of quotes with upper and lowercase symbols
+        data = get_dividend_history(['aapl', 'T', 'MSFT'])
+
+        hist = []
+        try:
+            hist = data['AAPL']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(len(hist) <= 0.0)
+
+        try:
+            hist = data['T']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(len(hist) <= 0.0)
+
+        try:
+            hist = data['MSFT']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(len(hist) <= 0.0)
+
+        found = True
+        try:
+            hist = data['WMT']['DividendHistory']
+        except Exception, error:
+            found = True
+
+        self.failIf(found == False)
+
+        # Test a list of one, both upper and lowercase
+        data = get_dividend_history(['aapl'])
+
+        try:
+            hist = data['AAPL']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        data = get_dividend_history(['AAPL'])
+
+        try:
+            hist = data['AAPL']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+
+    #Unit Test get_quotes_data
+    def test_get_quotes_data(self):
+        # Test list of quotes with upper and lowercase symbols
+        quote_data = get_quotes_data(['aapl', 'T', 'MSFT'])
+
+        price = 0.0
+
+        try:
+            price = quote_data['AAPL']['LastTradePriceOnly']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(price <= 0.0)
+
+        try:
+            price = quote_data['T']['LastTradePriceOnly']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(price <= 0.0)
+
+        try:
+            price = quote_data['MSFT']['LastTradePriceOnly']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(price <= 0.0)
+
+        found = True
+        try:
+            price = quote_data['WMT']['LastTradePriceOnly']
+        except Exception, error:
+            found = False
+
+        self.failIf(found == True)
+
+        # Test a list of one, both upper and lowercase
+        quote_data = get_quotes_data(['aapl'])
+
+        try:
+            price = quote_data['AAPL']['LastTradePriceOnly']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        quote_data = get_quotes_data(['AAPL'])
+
+        try:
+            price = quote_data['AAPL']['LastTradePriceOnly']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+
+    #Unit Test get_key_stats_data
+    def test_get_key_stats_data(self):
+        # Test list of quotes with upper and lowercase symbols
+        data = get_key_stats_data(['aapl', 'T', 'MSFT'])
+
+        value = 0.00
+
+        try:
+            value = data['AAPL']['TotalDebt']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(value <= 0.0)
+
+        try:
+            value = data['T']['TotalDebt']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(value <= 0.0)
+
+        try:
+            value = data['MSFT']['TotalDebt']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(value <= 0.0)
+
+        found = True
+        try:
+            value = data['WMT']['TotalDebt']
+        except Exception, error:
+            found = False
+
+        self.failIf(found == True)
+
+        # Test a list of one, both upper and lowercase
+        data = get_key_stats_data(['aapl'])
+
+        try:
+            value = data['AAPL']['TotalDebt']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        data = get_key_stats_data(['AAPL'])
+
+        try:
+            value = data['AAPL']['TotalDebt']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+
+    #Unit Test get_stocks_data
+    def test_get_stocks_data(self):
+        # Test list of quotes with upper and lowercase symbols
+        data = get_stocks_data(['aapl', 'T', 'MSFT'])
+
+        value = 0.0
+
+        try:
+            value = data['AAPL']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(value <= 0.0)
+
+        try:
+            value = data['T']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        if value <= 0.0:
+            return False
+
+        try:
+            value = data['MSFT']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(value <= 0.0)
+
+        found = True
+        try:
+            value = data['WMT']['start']
+        except Exception, error:
+            found = False
+
+        self.failIf(found == True)
+
+        # Test a list of one, both upper and lowercase
+        data = get_stocks_data(['aapl'])
+
+        try:
+            value = data['AAPL']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        data = get_stocks_data(['AAPL'])
+
+        try:
+            value = data['AAPL']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+
+
 
 if __name__ == '__main__':
     unittest.main()

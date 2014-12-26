@@ -66,10 +66,9 @@ def create_database():
 
 
 def get_wikipedia_snp500_list():
-    """Download and parse the Wikipedia list of S&P500 
-    constituents using requests and libxml.
-
-    Returns a list of tuples for to add to MySQL."""
+    #Download and parse the Wikipedia list of S&P500
+    #constituents using requests and libxml.
+    #Returns a list symbols from off wikipedia
 
     # Stores the current time, for the created_at record
     now = datetime.datetime.utcnow()
@@ -856,51 +855,3 @@ if __name__ == '__main__':
     
 
 
-
-# Not Needed, I think
-# Fix output so that there isn't such inconsistency in the data. i.e. "N/A" = 0.00 for a dividend, etc.
-def standardize_data2(data):
-    for row in data:
-        for item in data[row]:
-            #if item is dollar, integer or decimal
-            if item in ['LastTradePriceOnly', 'YearLow', 'YearHigh', 'DividendShare', 'EarningsShare',\
-                        'PERatio', 'PriceSales', 'PEGRatio', 'ShortRatio', 'BookValue', 'PriceBookTotalDebt', \
-                        'ReturnOnEquity', 'TrailingPE', 'RevenuePerShare', 'MarketCap','PriceBook', 'EBITDA', \
-                        'OperatingCashFlow', 'Beta', 'ReturnonAssests', 'ForwardAnnualDividendRate', \
-                        'SharesShort', 'CurrentRatio', 'BookValuePerShare', 'TotalCashPerShare', 'TotalCash', \
-                        'Revenue', 'ForwardPE', 'DilutedEPS', 'SharesOutstanding', 'TotalDebtEquity', \
-                        'FullTimeEmployees', 'TotalDebt']:
-                value = data[row][item]
-                
-                if value == "N/A" or value == None or value == "None":
-                    data[row][item] = 0
-                elif is_number(value):
-                    data[row][item] = float(value)
-                else:
-                    raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
-
-            # if item is a date
-            if item in ['Ex_DividendDate', 'start', 'DividendDate']:
-                value = data[row][item]
-
-                if value == "N/A" or value == None or value == "None" or "NaN" in value:
-                    data[row][item] = None
-                else:                    
-                    try:
-                        data[row][item] = datetime.datetime.strptime(value,"%Y-%m-%d")
-                    except ValueError:
-                        try:
-                            data[row][item] = datetime.datetime.strptime(value,"%b %d, %Y")
-                        except ValueError:
-                            raise ValueError("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
-
-            # if item is a percentage
-            if item in ['QtrlyEarningsGrowth', 'PayoutRatio', 'ProfitMargin', 'TrailingAnnualDividendYield',\
-                        'ForwardAnnualDividendYield', 'p_5YearAverageDividentYield', 'OperatingMargin']: 
-
-                value = data[row][item]
-
-                if value == "N/A" or value == None or value == "None":
-                    data[row][item] = None
-                else:
-                    data[row][item] = float(value.strip('%')) / 100.0

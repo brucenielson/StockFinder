@@ -101,7 +101,6 @@ def store_stock_list(symbol_list):
         
     # Do insert for new symbols that we want to store
     db.executemany("insert into stocklist(symbol) values (?)", tuple_list)
-
     db.commit()
     db.close()
 

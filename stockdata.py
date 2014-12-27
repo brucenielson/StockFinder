@@ -124,13 +124,24 @@ def store_stock_data(stock_data):
     stored_symbols = [row[SYMBOL] for row in db_stock_data]
     insert_values = []
     update_values = []
-    for key in stock_data.keys():
-        if key not in stored_symbols:
-            # create list of new values to insert
-            insert_values.append(stock_data[key])
+    for symbol in stock_data.keys():
+        # create list of new values to insert or update
+        industry = stock_data[symbol]["Industry"]
+        sector = stock_data[symbol]["Sector"]
+        start = stock_data[symbol]["start"]
+        full_time_employees = stock_data[symbol]["FullTimeEmployees"]
+        if "DividendHistory" in stock_data[symbol] and len(stock_data[symbol]["DividendHistory"] > 0):
+            has_dividends = True
+        else:
+            has_dividends = False
+        last_dividend_date = stock_data[symbol]["DividendDate"]
+        last_updated = datetime.datetime.now()
+
+        if symbol not in stored_symbols:
+            insert_values.append((symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated))
         else:
             # create list for potential updates
-            update_values.append(stock_data[key])
+            update_values.append((symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated))
             
     return insert_values, update_values
 
@@ -139,7 +150,7 @@ def store_stock_data(stock_data):
 def retrieve_stocks_from_db():
     db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
     cursor = db.cursor()
-    cursor.execute("select * from stocklist")
+    cursor.execute("select symbol, industry, 'sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated from stocklist")
     result = cursor.fetchall()
     db.close()
     return result
@@ -443,14 +454,23 @@ def standardize_data(data):
                         'FullTimeEmployees', 'TotalDebt']:
 
                 value = data[row][item]
-                
+                value = str(value).replace(",","")
+
                 if value == "N/A" or value == None or value == "None":
                     data[row][item] = 0.00
+                elif type(value) == type(float):
+                    data[row][item] = float(value)
                 elif is_number(value):
                     data[row][item] = float(value)
+                elif value[len(value)-1] == "M":
+                    data[row][item] = float(value[:len(value)-1])*1000000.00
+                elif value[len(value)-1] == "B":
+                    data[row][item] = float(value[:len(value)-1])*1000000000.00
+                elif value[len(value)-1] == "T":
+                    data[row][item] = float(value[:len(value)-1])*1000000000000.00
                 else:
                     raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
-                # Does this stock include this field?                    
+                # Does this stock include this field?
                 
 
             # if item is a date
@@ -477,13 +497,18 @@ def standardize_data(data):
                 if value == "N/A" or value == None or value == "None":
                     data[row][item] = 0.0
                 else:
-                    data[row][item] = float(value.strip('%')) / 100.0
+                    try:
+                        data[row][item] = float(value.strip('%').replace(",","")) / 100.0
+                    except ValueError:
+                        raise ValueError("For "+row+", "+item+": "+value+" is not a valid value.")
+
 
 
 
 
 
 def is_number(s):
+    s = str(s)
     try:
         float(s)
         return True
@@ -511,7 +536,7 @@ def analyze_data(data):
         else:
             data[row]['IsDividend'] = False
 
-            
+
         print row + " - " + str(data[row]['IsDividend'])
             
 

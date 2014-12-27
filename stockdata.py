@@ -554,50 +554,53 @@ def is_dividend_stock(stock_data_row):
         raise Exception("Parameter 'stock_data' must be a dictionary of data for a single stock")
 
     has_key_stats = not stock_data_row['NoKeyStats']
-    forward_div = stock_data_row['ForwardAnnualDividendRate']
+    forward_div = float(stock_data_row['ForwardAnnualDividendRate'])
     has_forward_div = not forward_div == 0.00 or forward_div == "N/A"
     has_div_hist = ('DividendHistory' in stock_data_row)
-    #print stock_data_row['Symbol'] + " - has_key_stats: " + str(has_key_stats) + " forward_div: " + str(forward_div) + " has_forward_div: " + str(has_forward_div) + " has_div_hist: " + str(has_div_hist)
+    error_string = "Bad data for Symbol: " + stock_data_row['Symbol'] + " - has_key_stats: " + str(has_key_stats) + "; forward_div: " + str(forward_div) + \
+                   "; has_forward_div: " + str(has_forward_div) + "; has_div_hist: " + str(has_div_hist) + ". "
+
+    div_share = float(stock_data_row['DividendShare'])
+    div_date = stock_data_row['DividendDate']
+    ex_div = stock_data_row['Ex_DividendDate']
 
     # key stats available
     if has_key_stats:
         if has_div_hist and has_forward_div:
             # This is a dividend stock with history and plan to pay another
-            assert stock_data_row['DividendShare'] > 0.00
-            assert stock_data_row['ForwardAnnualDividendRate'] > 0.00
-            assert stock_data_row['DividendDate'] != None
-            assert stock_data_row['Ex_DividendDate'] != None
-            
-            return True
+            if (div_share > 0.00 and forward_div > 0.00 and div_date != None and ex_div != None):
+                return True
+            else:
+                raise Exception(error_string + "This stock should have a dividend share, a forward dividend rate, a dividend date, and an ex dividend date.")
+
         elif not has_forward_div and has_div_hist:
             # This is supposed to be a former dividend stock that cut its dividend
-            assert stock_data_row['DividendShare'] == 0.00
-            assert stock_data_row['ForwardAnnualDividendRate'] == 0.00
+
             # Yahoo sometimes contains an old Ex_DividendDate / DividendDate and sometimes doesn't for stocks
             # that cut their dividends. So don't check Ex_DividendDate for this case.
+            if (div_share == 0.00 and forward_div == 0.00):
+                return False
+            else:
+                raise Exception(error_string + "This stock should not have a dividend share nor a forward dividend rate.")
 
-            return False
         elif has_forward_div and not has_div_hist:
             # This is a stock that has no dividends in the past, but is forecasting one
-            assert stock_data_row['DividendShare'] == 0.00
-            assert stock_data_row['ForwardAnnualDividendRate'] > 0.00
-            assert stock_data_row['DividendDate'] == None
-            assert stock_data_row['Ex_DividendDate'] == None
+            if (div_share == 0.00 and forward_div > 0.00 and div_date == None and ex_div == None):
+                return True
+            else:
+                raise Exception(error_string + "This stock should not have a dividend share, dividend date, or ex dividend date, but should have a forward dividend rate.")
 
-            return True
-        else: # not has_forward_div and not has_div_hist: 
+        else: # not has_forward_div and not has_div_hist:
             # This is a stock that has no dividend history nor is it forecasting one
-            ex_div = stock_data_row['Ex_DividendDate']
             diff = datetime.timedelta(0)
             if (ex_div != None): diff = datetime.datetime.now() - ex_div
+            if (div_share == 0.00 and forward_div == 0.00 and div_date == None and (ex_div == None or diff >= datetime.timedelta(10*365))):
+                return False
+            else:
+                raise Exception(error_string + "This stock should not have a dividend share, forward dividend rate, or dividend date. "\
+                        + "It should also not have an ex dividend rate or it should be older than 10 years old.")
 
-            assert float(stock_data_row['DividendShare']) == 0.00
-            assert float(stock_data_row['ForwardAnnualDividendRate']) == 0.00
-            assert stock_data_row['DividendDate'] == None
-            assert (ex_div == None or diff >= datetime.timedelta(10*365))
 
-            return False
-    
     else: # No key stats available, so only have a dividend share and div history
         if stock_data_row['DividendShare'] > 0.00 and has_div_hist:
             return True

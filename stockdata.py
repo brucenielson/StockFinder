@@ -27,19 +27,57 @@ DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 ALL_FIELDS = QUOTES_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCKS_FIELDS
 
 # Order of fields in Stock List table
-SYMBOL = 0
-INDUSTRY = 1
-SECTOR = 2
-START = 3
-FULL_TIME_EMPLOYEES = 4
-HAS_DIVIDENDS = 5
-LAST_DIVIDEND_DATE = 6
-LAST_UPDATED = 7
+ROWID = 0
+SYMBOL = 1
+INDUSTRY = 2
+SECTOR = 3
+START = 4
+FULL_TIME_EMPLOYEES = 5
+HAS_DIVIDENDS = 6
+LAST_DIVIDEND_DATE = 7
+LAST_UPDATED = 8
 
 
 # ****Data Layer****
+# The Data Layer is responsible for obtaining data from either the web or the database
+# It will also contain the database utilities necessary to create the database.
 
 
+# create_database(database_name = "stocksdata.db"):
+# Create the SQLite database to store stock information for all stocks we're interested in.
+# Stock data that doesn't need to get updated all the time is stored here.
+# There is an optional parameter to specify a database name. This is only used for unit testing
+# so that I don't have to destroy the existing database each time the test is ran.
+def create_database(database_name = "stocksdata.db"):
+    # Create or open the database
+    db = sqlite.connect(os.path.dirname(__file__)+"\\"+database_name)
+
+    # if database already exists, drop all tables first
+    db.execute('drop index if exists symbolx')
+    db.execute('drop index if exists labelx')
+    db.execute('drop table if exists stock_list')
+    db.execute('drop table if exists dividend_history')
+    db.execute('drop table if exists label')
+    db.execute('drop table if exists url')
+
+
+    # create the tables
+    db.execute('create table stock_list(symbol, industry,'\
+                        + 'sector, start, full_time_employees, has_dividends, '\
+                        + 'last_dividend_date, last_updated)')
+    db.execute('create table dividend_history (stockid, dividends, date)')
+    db.execute('create table label(stockid, label)')
+    db.execute('create table url(stockid, url)')
+    db.execute('create index symbolx on stock_list(symbol)')
+    db.execute('create index labelx on label(label)')
+    db.commit()
+    db.close()
+
+
+
+# get_wikipedia_snp500_list():
+# Get a list of all current S&P 500 stocks off of Wikipedia.
+# Since Wikipedia is constantly updated, this should always be an up to date list.
 def get_wikipedia_snp500_list():
     #Download and parse the Wikipedia list of S&P500
     #constituents using requests and libxml.
@@ -57,53 +95,458 @@ def get_wikipedia_snp500_list():
 
 
 
-
-
-def create_database():
-    # Create or open the database
-    db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
-
-    # if database already exists, drop all tables first
-    db.execute('drop index if exists symbolx')
-    db.execute('drop index if exists labelx')
-    db.execute('drop table if exists stocklist')
-    db.execute('drop table if exists dividend_history')
-    db.execute('drop table if exists label')
-    db.execute('drop table if exists url')
-
-    
-    # create the tables
-    db.execute('create table stocklist(symbol, industry,'\
-                        + 'sector, start, full_time_employees, has_dividends, '\
-                        + 'last_dividend_date, last_updated)')
-    db.execute('create table dividend_history (stockid, dividends, date)')
-    db.execute('create table label(stockid, label)')
-    db.execute('create table url(stockid, url)')
-    db.execute('create index symbolx on stocklist(symbol)')
-    db.execute('create index labelx on label(label)')
-    db.commit()
-    db.close()
-
-
-# Takes a list of symbols in format ['AAPL', 'MSFT'] and stores them in the db
-def store_stock_list(symbol_list):
+# track_stock_symbols(symbol_list):
+# Takes a list of symbols in format ['AAPL', 'MSFT'] and stores them in the database
+# so that the program will track them in the future.
+# This function also "primes" the data by looking up rarely changing data and
+# storing it so that we don't have to look it up each time we refresh data off
+# the web. This includes "stocks" data as well as dividend history.
+# If you pass a symbol that already exists in the database it just ignores it.
+# There is an optional parameter to specify a database name. This is only used for unit testing
+# so that I don't have to destroy the existing database each time the test is ran.
+def track_stock_symbols(symbol_list, database = "stocksdata.db"):
     if type(symbol_list) != type(list()):
         raise Exception("symbol_list must be a list")
 
     # get the list of stocks currently in the database to compare to the passed list
-    db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
-    db_list = db.execute('select symbol from stocklist')
-    new_symbols = [symbol for symbol in symbol_list if symbol not in db_list]
+    db = sqlite.connect(os.path.dirname(__file__)+"\\"+database)
+    cursor = db.cursor()
+    cursor.execute("select symbol, rowid from stock_list")
+    db_list = cursor.fetchall()
+    # convert db_list to just be a list of symbols (not in tuples)
+    db_list_symbols = [tuple[0] for tuple in db_list]
+    new_symbols = [symbol for symbol in symbol_list if symbol not in db_list_symbols]
 
-    tuple_list = []
+    # If there are no new symbols in the list, then just ignore everything and abort
+    if len(new_symbols) == 0:
+        return
+
+    # Get data to store for this new symbol
+    stocks_data = get_stocks_data(new_symbols)
+    div_hist_data = get_dividend_history(new_symbols)
+
+    insert_stocks_list = []
+    insert_div_hist_list = []
+
     for symbol in new_symbols:
-          tuple_symbol = (symbol,)
-          tuple_list.append(tuple_symbol)
-        
+        # get stocks data
+        industry = stocks_data[symbol]["Industry"]
+        sector = stocks_data[symbol]["Sector"]
+        start = stocks_data[symbol]["start"]
+        full_time_employees = stocks_data[symbol]["FullTimeEmployees"]
+        if len(div_hist_data) > 0:
+            has_dividends = True
+        else:
+            has_dividends = False
+        try:
+            last_dividend_date = div_hist_data[symbol]["DividendHistory"][0]['Date']
+        except:
+            last_dividend_date = None
+        last_updated = datetime.datetime.now()
+
+        stocks_data_row = (symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated)
+        insert_stocks_list.append(stocks_data_row)
+
+
+
     # Do insert for new symbols that we want to store
-    db.executemany("insert into stocklist(symbol) values (?)", tuple_list)
+    db.executemany("insert into stock_list(symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated) "\
+            + "values (?, ?, ?, ?, ?, ?, ?, ?)", insert_stocks_list)
     db.commit()
+
+
+
+    # get rowids for list of new_symbols (that was just inserted into the table)
+    stock_list = retrieve_stock_list_from_db()
+    stock_ids = {}
+
+    for row in stock_list:
+        if row[1] in new_symbols:
+            stock_ids[row[1]] = row[0]
+
+
+    # get dividend history data for new stocks. Ignore ones already in database.
+    for symbol in div_hist_data:
+        if symbol in new_symbols:
+            # look up stock id for this symbol
+            id = stock_ids[symbol]
+
+            if id == None or id == "":
+                raise Exception("Attempting to insert dividend history for " + symbol + ". But it is not in the database.")
+
+            for div_row in div_hist_data[symbol]['DividendHistory']:
+                div_hist_row = (id, div_row['Dividends'], div_row['Date'])
+                insert_div_hist_list.append(div_hist_row)
+
+
+    # Do insert for div history we want to store
+    db.executemany("insert into dividend_history(stockid, dividends, date) "\
+            + "values (?, ?, ?)", insert_div_hist_list)
+    db.commit()
+
     db.close()
+
+
+
+
+# get_stocks_data(symbol_list):
+# Given a list of symbols, get the "stocks" data from Yahoo to
+# store in the database. Returns in a standardized format.
+def get_stocks_data(symbol_list):
+
+    if type(symbol_list) != type(list()):
+        raise Exception("symbol_list must be a list")
+
+    # make a copy of the list so that we can re-run yql until we get the full list
+    remaining_symbols = symbol_list[:]
+    remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
+    result = {}
+    final = {}
+
+    # Since YQL fails a lot, do a loop until you get everything in the whole
+    # original list of symbols
+    while len(remaining_symbols) > 0:
+        yql = "select "+ STOCKS_FIELDS +" from yahoo.finance.stocks where symbol in (" \
+                        + '\'' \
+                        + '\',\''.join(remaining_symbols) \
+                        + '\'' \
+                        + ")"
+
+        result = execute_yql(yql)
+        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
+        final = dict(final.items() + result.items())
+
+    return standardize_data(final)
+
+
+
+# get_dividend_history(symbol_list):
+# From a list of symbols, get dividend history data. Returns in a standardized format.
+def get_dividend_history(symbol_list):
+
+    if type(symbol_list) != type(list()):
+        raise Exception("symbol_list must be a list")
+
+    today = datetime.datetime.now()
+
+    # make a copy of the list so that we can re-run yql until we get the full list
+    remaining_symbols = symbol_list[:]
+    remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
+    result = {}
+    final = {}
+
+    # Since YQL fails a lot, do a loop until you get everything in the whole
+    # original list of symbols
+    while len(remaining_symbols) > 0 and result != None:
+        yql = "select "+ DIVIDEND_HISTORY_FIELDS +" from yahoo.finance.dividendhistory where"\
+                        + " startDate = \"%s-%s-%s\" and endDate = \"%s-%s-%s\""\
+                        + " and symbol in (" \
+                        +'\'' \
+                        + '\',\''.join(remaining_symbols) \
+                        + '\'' \
+                        + ")"
+
+        yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
+        result = execute_yql(yql)
+        if result != None:
+            remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
+            final = dict(final.items() + result.items())
+
+    return standardize_dividend_history_data(final)
+
+
+
+
+# standardize_data(data):
+# Fix output so that there isn't such inconsistency in the data. i.e. "N/A" = 0.00 for a dividend, etc.
+# This function can take any data set (quotes, stocks, key_stats) except Dividend History.
+def standardize_data(data):
+    all_fields = ALL_FIELDS.split(", ")
+    for row in data:
+        for item in all_fields:
+
+            # If item is not in this quote, then fill in with default data
+            if item not in data[row]:
+                data[row][item] = None
+
+
+            #if item is dollar, integer or decimal
+            if item in ['LastTradePriceOnly', 'YearLow', 'YearHigh', 'DividendShare', 'EarningsShare',\
+                        'PERatio', 'PriceSales', 'PEGRatio', 'ShortRatio', 'BookValue', 'PriceBookTotalDebt', \
+                        'ReturnOnEquity', 'TrailingPE', 'RevenuePerShare', 'MarketCap','PriceBook', 'EBITDA', \
+                        'OperatingCashFlow', 'Beta', 'ReturnonAssests', 'ForwardAnnualDividendRate', \
+                        'SharesShort', 'CurrentRatio', 'BookValuePerShare', 'TotalCashPerShare', 'TotalCash', \
+                        'Revenue', 'ForwardPE', 'DilutedEPS', 'SharesOutstanding', 'TotalDebtEquity', \
+                        'FullTimeEmployees', 'TotalDebt']:
+
+                value = data[row][item]
+                value = str(value).replace(",","")
+
+                if value == "N/A" or value == None or value == "None":
+                    data[row][item] = 0.00
+                elif type(value) == type(float):
+                    data[row][item] = float(value)
+                elif is_number(value):
+                    data[row][item] = float(value)
+                elif value[len(value)-1] == "M":
+                    data[row][item] = float(value[:len(value)-1])*1000000.00
+                elif value[len(value)-1] == "B":
+                    data[row][item] = float(value[:len(value)-1])*1000000000.00
+                elif value[len(value)-1] == "T":
+                    data[row][item] = float(value[:len(value)-1])*1000000000000.00
+                else:
+                    raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
+
+
+            # if item is a date
+            if item in ['Ex_DividendDate', 'start', 'DividendDate']:
+                value = data[row][item]
+
+                if value == "N/A" or value == None or value == "None" or "NaN" in value:
+                    data[row][item] = None
+                else:
+                    try:
+                        data[row][item] = datetime.datetime.strptime(value,"%Y-%m-%d")
+                    except ValueError:
+                        try:
+                            data[row][item] = datetime.datetime.strptime(value,"%b %d, %Y")
+                        except ValueError:
+                            raise ValueError("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
+
+            # if item is a percentage
+            if item in ['QtrlyEarningsGrowth', 'PayoutRatio', 'ProfitMargin', 'TrailingAnnualDividendYield',\
+                        'ForwardAnnualDividendYield', 'p_5YearAverageDividentYield', 'OperatingMargin']:
+
+                value = data[row][item]
+
+                if value == "N/A" or value == None or value == "None":
+                    data[row][item] = 0.0
+                else:
+                    try:
+                        data[row][item] = float(value.strip('%').replace(",","")) / 100.0
+                    except ValueError:
+                        raise ValueError("For "+row+", "+item+": "+value+" is not a valid value.")
+
+    return data
+
+
+
+
+# standardize_dividend_history_data(div_history_data)
+# Fix output so that there isn't such inconsistency in the data. i.e. "N/A" = 0.00 for a dividend, etc.
+# This function takes only dividend history data.
+def standardize_dividend_history_data(div_history_data):
+    div_hist_fields = DIVIDEND_HISTORY_FIELDS.split(", ")
+
+    for symbol in div_history_data:
+        dividend_list =  div_history_data[symbol]['DividendHistory']
+        for div in dividend_list:
+            for field in div_hist_fields:
+                # If field is not in this quote, then fill in with default data
+                if field not in div:
+                    div[field] = None
+
+                #if item is dollar, integer or decimal
+                if field in ['Dividends']:
+                    try:
+                        div[field] = convert_to_float(div[field])
+                    except ValueError:
+                        raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" is not a valid value.")
+
+                # if item is a date
+                if field in ['Date']:
+                    try:
+                        div[field] = convert_to_date(div[field])
+                    except ValueError:
+                        raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD.")
+
+    return div_history_data
+
+
+
+# convert_to_float(value):
+# Attempt to convert value to a float (decimal) format or else raise a ValueError exception
+def convert_to_float(value):
+    value = str(value).replace(",","")
+
+    if value == "N/A" or value == None or value == "None":
+        return 0.00
+    elif type(value) == type(float):
+        return float(value)
+    elif is_number(value):
+        return float(value)
+    elif value[len(value)-1] == "M":
+        return float(value[:len(value)-1])*1000000.00
+    elif value[len(value)-1] == "B":
+        return float(value[:len(value)-1])*1000000000.00
+    elif value[len(value)-1] == "T":
+        return float(value[:len(value)-1])*1000000000000.00
+    else:
+        raise ValueError()
+
+
+
+
+
+# convert_to_date(value):
+# Attempt to convert value to a date format or else raise a ValueError exception
+def convert_to_date(value):
+    if value == "N/A" or value == None or value == "None" or "NaN" in value:
+        return None
+    else:
+        try:
+            return datetime.datetime.strptime(value,"%Y-%m-%d")
+        except ValueError:
+            try:
+                return datetime.datetime.strptime(value,"%b %d, %Y")
+            except ValueError:
+                raise ValueError()
+
+
+
+
+# is_number(s)
+# Pass a string and return True if it can be converted to a float without an exception
+def is_number(s):
+    s = str(s)
+    try:
+        float(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        import unicodedata
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+
+    return False
+
+
+
+
+# execute_yql(yql):
+# Takes a Yahoo Query Language statement and executes it via the Yahoo API
+# Standardizes the format so that the return result is a dictionary with the
+# symbol (in upper case) is the key for the data.
+def execute_yql(yql):
+    url = "http://query.yahooapis.com/v1/public/yql?q=" \
+            + urllib2.quote(yql) \
+            + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
+
+    try:
+        result = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        raise Exception("HTTP error: ", e.code, e.reason);
+    except urllib2.URLError, e:
+        raise Exception("Network error: ", e.reason);
+
+    result = json.loads(result.read())
+
+    json_data = result['query']['results']
+
+    if json_data == None:
+        return None
+
+    else:
+        json_data = json_data[json_data.keys()[0]]
+        data_dict = {}
+
+        if type(json_data) == type(list()) and 'Dividends' in json_data[0] and 'Date' in json_data[0]:
+            # Dividend history is a list, so iterate through it and group symbols together
+            list_iter = iter(json_data)
+            row = next(list_iter,"eof")
+
+            while row != "eof":
+                current_symbol = row['Symbol'].upper()
+                last_symbol = ""
+                data_dict[current_symbol] = {}
+                data_dict[current_symbol]['DividendHistory'] = []
+
+                while row != "eof" and current_symbol == row['Symbol'].upper():
+                    data_dict[current_symbol]['DividendHistory'].append(row)
+                    last_symbol = current_symbol
+                    row = next(list_iter, "eof")
+
+                # sort the list - is this necessary?
+                data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: datetime.datetime.strptime(x['Date'],"%Y-%m-%d"), reverse=True)
+
+        # otherwise this is quote, stock, or stats data
+        else:
+
+            # If only one row is returned, it comes back as a dictionary
+            if type(json_data) == type(dict()):
+                try:
+                    data_dict[json_data['symbol'].upper()] = json_data
+                except:
+                    try:
+                        data_dict[json_data['Symbol'].upper()] = json_data
+                    except:
+                        data_dict[json_data['sym'].upper()] = json_data
+            # else if multiple rows come back, it returns it as a list
+            else:
+                for entry in json_data:
+                    symbol = ""
+                    try:
+                        symbol = entry['symbol'].upper()
+                    except:
+                        try:
+                            symbol = entry['sym'].upper()
+                        except:
+                            symbol = entry['Symbol'].upper()
+
+                    data_dict[symbol] = entry
+
+        return data_dict
+
+
+
+
+# retrieve_stock_list_from_db():
+# Retrieve the entire stock_list table from the database with all fields.
+# Returns a list with a tuple for all rows with tuple in this format:
+# (rowid, symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated)
+# If the optional parameter is set to "", retrieve entire table, otherwise, retrieve just one symbol
+# There is also an optional parameter to specify a database name. This is only used for unit testing
+# so that I don't have to destroy the existing database each time the test is ran.
+def retrieve_stock_list_from_db(symbol = "", database="stocksdata.db"):
+
+    db = sqlite.connect(os.path.dirname(__file__)+"\\"+database)
+    cursor = db.cursor()
+    if symbol == "":
+        cursor.execute("select rowid, symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated from stock_list")
+    else:
+        cursor.execute("select rowid, symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated from stock_list where symbol='"+ symbol+"'")
+    result = cursor.fetchall()
+    db.close()
+    return result
+
+
+
+
+
+# retrieve_dividend_history_from_db():
+# Retrieve the entire dividend_history table from the database with all fields.
+# Returns a list with a tuple for all rows with tuple in this format:
+# (rowid, symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated)
+# If the optional parameter is set to "", retrieve entire table, otherwise, retrieve just one symbol
+# There is also an optional parameter to specify a database name. This is only used for unit testing
+# so that I don't have to destroy the existing database each time the test is ran.
+def retrieve_dividend_history_from_db(stockid = "", database="stocksdata.db"):
+
+    db = sqlite.connect(os.path.dirname(__file__)+"\\"+database)
+    cursor = db.cursor()
+    if stockid == "":
+        cursor.execute("select rowid, stockid, Dividends, Date from dividend_history")
+    else:
+        cursor.execute("select rowid, stockid, Dividends, Date from dividend_history where stockid='"+ stockid +"'")
+    result = cursor.fetchall()
+    db.close()
+    return result
+
+
 
 
 
@@ -119,7 +562,7 @@ def store_stock_data(stock_data):
     db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
     db_stock_data = db.execute('select symbol, industry,'\
                         + 'sector, start, full_time_employees, has_dividends, '\
-                        + 'last_dividend_date, last_updated from stocklist')
+                        + 'last_dividend_date, last_updated from stock_list')
 
     # Loop through each entry in the stock_data dictionary
     # and compare it to the existing data to determine what should be saved.
@@ -149,88 +592,6 @@ def store_stock_data(stock_data):
             update_values.append((symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated))
             
     return insert_values, update_values
-
-
-
-def retrieve_stocks_from_db():
-    db = sqlite.connect(os.path.dirname(__file__)+"\\stocksdata.db")
-    cursor = db.cursor()
-    cursor.execute("select symbol, industry, 'sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated from stocklist")
-    result = cursor.fetchall()
-    db.close()
-    return result
-
-
-
-def execute_yql(yql):
-    url = "http://query.yahooapis.com/v1/public/yql?q=" \
-            + urllib2.quote(yql) \
-            + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
-
-    try: 
-        result = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:        
-        raise Exception("HTTP error: ", e.code, e.reason);
-    except urllib2.URLError, e:
-        raise Exception("Network error: ", e.reason);
-           
-    result = json.loads(result.read())
-
-    json_data = result['query']['results']
-    
-    if json_data == None:
-        return None
-
-    else:
-        json_data = json_data[json_data.keys()[0]]
-        data_dict = {}
-        
-        if type(json_data) == type(list()) and 'Dividends' in json_data[0] and 'Date' in json_data[0]:
-            # Divident history is a list, so iterate through it and group symbols together
-            list_iter = iter(json_data)
-            row = next(list_iter,"eof")
-
-            while row != "eof":
-                current_symbol = row['Symbol'].upper()
-                last_symbol = ""
-                data_dict[current_symbol] = {}
-                data_dict[current_symbol]['DividendHistory'] = []
-                
-                while row != "eof" and current_symbol == row['Symbol'].upper():
-                    data_dict[current_symbol]['DividendHistory'].append(row)
-                    last_symbol = current_symbol
-                    row = next(list_iter, "eof")
-
-                # sort the list - is this necessary?
-                data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: datetime.datetime.strptime(x['Date'],"%Y-%m-%d"), reverse=True)
-            
-        # otherwise this is quote, stock, or stats data
-        else:
-        
-            # If only one row is returned, it comes back as a dictionary
-            if type(json_data) == type(dict()):
-                try:
-                    data_dict[json_data['symbol'].upper()] = json_data                            
-                except:
-                    try:
-                        data_dict[json_data['Symbol'].upper()] = json_data
-                    except:
-                        data_dict[json_data['sym'].upper()] = json_data
-            # else if multiple rows come back, it returns it as a list
-            else:
-                for entry in json_data:
-                    symbol = ""
-                    try:
-                        symbol = entry['symbol'].upper()
-                    except:
-                        try:
-                            symbol = entry['sym'].upper()
-                        except:
-                            symbol = entry['Symbol'].upper()
-
-                    data_dict[symbol] = entry
-    
-        return data_dict
 
 
 
@@ -318,77 +679,6 @@ def get_key_stats_data(symbol_list):
 
 
 
-def get_stocks_data(symbol_list):
-
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
-
-    # make a copy of the list so that we can re-run yql until we get the full list
-    remaining_symbols = symbol_list[:]
-    remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
-    result = {}
-    final = {}
-
-    # Since YQL fails a lot, do a loop until you get everything in the whole
-    # original list of symbols
-    while len(remaining_symbols) > 0:
-        yql = "select "+ STOCKS_FIELDS +" from yahoo.finance.stocks where symbol in (" \
-                        + '\'' \
-                        + '\',\''.join(remaining_symbols) \
-                        + '\'' \
-                        + ")"
-
-        result = execute_yql(yql)
-        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
-        final = dict(final.items() + result.items())
-    
-
-                    
-    return final
-
-
-
-
-# Get Dividend History to look at how consistent dividends really are and to
-# Calculate TTM averages, avergaes per year, etc.
-def get_dividend_history(symbol_list):
-    
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
-    
-    today = datetime.datetime.now()
-
-    # make a copy of the list so that we can re-run yql until we get the full list
-    remaining_symbols = symbol_list[:]
-    remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
-    result = {}
-    final = {}
-
-    # Since YQL fails a lot, do a loop until you get everything in the whole
-    # original list of symbols
-    while len(remaining_symbols) > 0 and result != None:
-        yql = "select "+ DIVIDEND_HISTORY_FIELDS +" from yahoo.finance.dividendhistory where"\
-                        + " startDate = \"%s-%s-%s\" and endDate = \"%s-%s-%s\""\
-                        + " and symbol in (" \
-                        +'\'' \
-                        + '\',\''.join(remaining_symbols) \
-                        + '\'' \
-                        + ")"  
-
-        yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
-        result = execute_yql(yql)
-        if result != None:            
-            remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
-            final = dict(final.items() + result.items())
-        else:
-            print "done"
-
-
-    return final
-
-
-
-
 # Take a list of stock ticker symbols and return comprehensive stock data for those symbols
 # in a standardized format
 def get_combined_data(symbol_list):
@@ -437,99 +727,6 @@ def get_combined_data(symbol_list):
 
 
 
-
-# Fix output so that there isn't such inconsistency in the data. i.e. "N/A" = 0.00 for a dividend, etc.
-def standardize_data(data):
-    all_fields = ALL_FIELDS.split(", ")
-    for row in data:
-        for item in all_fields:
-            
-            # If item is not in this quote, then fill in with default data
-            if item not in data[row]:
-                data[row][item] = None
-
-            
-            #if item is dollar, integer or decimal
-            if item in ['LastTradePriceOnly', 'YearLow', 'YearHigh', 'DividendShare', 'EarningsShare',\
-                        'PERatio', 'PriceSales', 'PEGRatio', 'ShortRatio', 'BookValue', 'PriceBookTotalDebt', \
-                        'ReturnOnEquity', 'TrailingPE', 'RevenuePerShare', 'MarketCap','PriceBook', 'EBITDA', \
-                        'OperatingCashFlow', 'Beta', 'ReturnonAssests', 'ForwardAnnualDividendRate', \
-                        'SharesShort', 'CurrentRatio', 'BookValuePerShare', 'TotalCashPerShare', 'TotalCash', \
-                        'Revenue', 'ForwardPE', 'DilutedEPS', 'SharesOutstanding', 'TotalDebtEquity', \
-                        'FullTimeEmployees', 'TotalDebt']:
-
-                value = data[row][item]
-                value = str(value).replace(",","")
-
-                if value == "N/A" or value == None or value == "None":
-                    data[row][item] = 0.00
-                elif type(value) == type(float):
-                    data[row][item] = float(value)
-                elif is_number(value):
-                    data[row][item] = float(value)
-                elif value[len(value)-1] == "M":
-                    data[row][item] = float(value[:len(value)-1])*1000000.00
-                elif value[len(value)-1] == "B":
-                    data[row][item] = float(value[:len(value)-1])*1000000000.00
-                elif value[len(value)-1] == "T":
-                    data[row][item] = float(value[:len(value)-1])*1000000000000.00
-                else:
-                    raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
-                # Does this stock include this field?
-                
-
-            # if item is a date
-            if item in ['Ex_DividendDate', 'start', 'DividendDate']:
-                value = data[row][item]
-
-                if value == "N/A" or value == None or value == "None" or "NaN" in value:
-                    data[row][item] = None
-                else:                    
-                    try:
-                        data[row][item] = datetime.datetime.strptime(value,"%Y-%m-%d")
-                    except ValueError:
-                        try:
-                            data[row][item] = datetime.datetime.strptime(value,"%b %d, %Y")
-                        except ValueError:
-                            raise ValueError("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
-
-            # if item is a percentage
-            if item in ['QtrlyEarningsGrowth', 'PayoutRatio', 'ProfitMargin', 'TrailingAnnualDividendYield',\
-                        'ForwardAnnualDividendYield', 'p_5YearAverageDividentYield', 'OperatingMargin']: 
-
-                value = data[row][item]
-
-                if value == "N/A" or value == None or value == "None":
-                    data[row][item] = 0.0
-                else:
-                    try:
-                        data[row][item] = float(value.strip('%').replace(",","")) / 100.0
-                    except ValueError:
-                        raise ValueError("For "+row+", "+item+": "+value+" is not a valid value.")
-
-
-
-
-
-
-def is_number(s):
-    s = str(s)
-    try:
-        float(s)
-        return True
-    except (TypeError, ValueError):
-        pass
- 
-    try:
-        import unicodedata
-        unicodedata.numeric(s)
-        return True
-    except (TypeError, ValueError):
-        pass
- 
-    return False
-
-                
 
 # Analyze data in various ways and label it. Input: data object with
 # all stocks as output by get_combined_data

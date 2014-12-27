@@ -37,6 +37,27 @@ LAST_DIVIDEND_DATE = 6
 LAST_UPDATED = 7
 
 
+# ****Data Layer****
+
+
+def get_wikipedia_snp500_list():
+    #Download and parse the Wikipedia list of S&P500
+    #constituents using requests and libxml.
+    #Returns a list symbols from off wikipedia
+
+    # Stores the current time, for the created_at record
+    now = datetime.datetime.utcnow()
+
+    # Use libxml to download the list of S&P500 companies and obtain the symbol table
+    page = lxml.html.parse('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+    symbol_list = page.xpath('//table[1]/tr/td[1]/a/text()')
+
+    return symbol_list
+
+
+
+
+
 
 def create_database():
     # Create or open the database
@@ -64,25 +85,6 @@ def create_database():
     db.close()
 
 
-
-def get_wikipedia_snp500_list():
-    #Download and parse the Wikipedia list of S&P500
-    #constituents using requests and libxml.
-    #Returns a list symbols from off wikipedia
-
-    # Stores the current time, for the created_at record
-    now = datetime.datetime.utcnow()
-
-    # Use libxml to download the list of S&P500 companies and obtain the symbol table
-    page = lxml.html.parse('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-    symbol_list = page.xpath('//table[1]/tr/td[1]/a/text()')
-
-    return symbol_list
-
-
-
-
-
 # Takes a list of symbols in format ['AAPL', 'MSFT'] and stores them in the db
 def store_stock_list(symbol_list):
     if type(symbol_list) != type(list()):
@@ -102,6 +104,9 @@ def store_stock_list(symbol_list):
     db.executemany("insert into stocklist(symbol) values (?)", tuple_list)
     db.commit()
     db.close()
+
+
+
 
 
 
@@ -130,7 +135,7 @@ def store_stock_data(stock_data):
         sector = stock_data[symbol]["Sector"]
         start = stock_data[symbol]["start"]
         full_time_employees = stock_data[symbol]["FullTimeEmployees"]
-        if "DividendHistory" in stock_data[symbol] and len(stock_data[symbol]["DividendHistory"] > 0):
+        if "DividendHistory" in stock_data[symbol] and len(stock_data[symbol]["DividendHistory"]) > 0:
             has_dividends = True
         else:
             has_dividends = False
@@ -544,55 +549,59 @@ def analyze_data(data):
 
 # Pass this function a single row of standardized format stock data (i.e. that which comes out of
 # get_combined_data() and it will determine if this is a dividend stock or not
-def is_dividend_stock(stock_data):
-    if (type(stock_data) != dict) or 'Symbol' not in stock_data:
+def is_dividend_stock(stock_data_row):
+    if (type(stock_data_row) != dict) or 'Symbol' not in stock_data_row:
         raise Exception("Parameter 'stock_data' must be a dictionary of data for a single stock")
 
-    has_key_stats = not stock_data['NoKeyStats']
-    forward_div = stock_data['ForwardAnnualDividendRate']
+    has_key_stats = not stock_data_row['NoKeyStats']
+    forward_div = stock_data_row['ForwardAnnualDividendRate']
     has_forward_div = not forward_div == 0.00 or forward_div == "N/A"
-    has_div_hist = ('DividendHistory' in stock_data)
-
+    has_div_hist = ('DividendHistory' in stock_data_row)
+    #print stock_data_row['Symbol'] + " - has_key_stats: " + str(has_key_stats) + " forward_div: " + str(forward_div) + " has_forward_div: " + str(has_forward_div) + " has_div_hist: " + str(has_div_hist)
 
     # key stats available
     if has_key_stats:
         if has_div_hist and has_forward_div:
             # This is a dividend stock with history and plan to pay another
-            assert stock_data['DividendShare'] > 0.00
-            assert stock_data['ForwardAnnualDividendRate'] > 0.00
-            assert stock_data['DividendDate'] != None
-            assert stock_data['Ex_DividendDate'] != None
+            assert stock_data_row['DividendShare'] > 0.00
+            assert stock_data_row['ForwardAnnualDividendRate'] > 0.00
+            assert stock_data_row['DividendDate'] != None
+            assert stock_data_row['Ex_DividendDate'] != None
             
             return True
         elif not has_forward_div and has_div_hist:
             # This is supposed to be a former dividend stock that cut its dividend
-            assert stock_data['DividendShare'] == 0.00
-            assert stock_data['ForwardAnnualDividendRate'] == 0.00
-            assert stock_data['DividendDate'] == None
-            assert stock_data['Ex_DividendDate'] == None
+            assert stock_data_row['DividendShare'] == 0.00
+            assert stock_data_row['ForwardAnnualDividendRate'] == 0.00
+            # Yahoo sometimes contains an old Ex_DividendDate / DividendDate and sometimes doesn't for stocks
+            # that cut their dividends. So don't check Ex_DividendDate for this case.
 
             return False
         elif has_forward_div and not has_div_hist:
             # This is a stock that has no dividends in the past, but is forecasting one
-            assert stock_data['DividendShare'] == 0.00
-            assert stock_data['ForwardAnnualDividendRate'] > 0.00
-            assert stock_data['DividendDate'] != None
-            assert stock_data['Ex_DividendDate'] != None
+            assert stock_data_row['DividendShare'] == 0.00
+            assert stock_data_row['ForwardAnnualDividendRate'] > 0.00
+            assert stock_data_row['DividendDate'] == None
+            assert stock_data_row['Ex_DividendDate'] == None
 
             return True
         else: # not has_forward_div and not has_div_hist: 
             # This is a stock that has no dividend history nor is it forecasting one
-            assert float(stock_data['DividendShare']) == 0.00
-            assert float(stock_data['ForwardAnnualDividendRate']) == 0.00
-            assert stock_data['DividendDate'] == None
-            assert stock_data['Ex_DividendDate'] == None
+            ex_div = stock_data_row['Ex_DividendDate']
+            diff = datetime.timedelta(0)
+            if (ex_div != None): diff = datetime.datetime.now() - ex_div
+
+            assert float(stock_data_row['DividendShare']) == 0.00
+            assert float(stock_data_row['ForwardAnnualDividendRate']) == 0.00
+            assert stock_data_row['DividendDate'] == None
+            assert (ex_div == None or diff >= datetime.timedelta(10*365))
 
             return False
     
     else: # No key stats available, so only have a dividend share and div history
-        if stock_data['DividendShare'] > 0.00 and has_div_hist:
+        if stock_data_row['DividendShare'] > 0.00 and has_div_hist:
             return True
-        elif not (stock_data['DividendShare'] > 0.00 and has_div_hist):
+        elif not (stock_data_row['DividendShare'] > 0.00 and has_div_hist):
             return False
         else:
             raise Exception("Dividend Share and Div History does not match.")

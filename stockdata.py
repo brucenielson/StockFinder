@@ -6,6 +6,8 @@ import lxml.html
 import sqlite3 as sqlite
 import os
 
+__author__ = 'Bruce Nielson'
+
 KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerShare, MarketCap, " \
          + "PriceBook, EBITDA, PayoutRatio, OperatingCashFlow, Beta, ReturnonAssests, "\
          + "TrailingAnnualDividendYield, ForwardAnnualDividendRate, p_5YearAverageDividentYield, "\
@@ -37,17 +39,21 @@ HAS_DIVIDENDS = 6
 LAST_DIVIDEND_DATE = 7
 LAST_UPDATED = 8
 
+## TODO:
+## Try this. Might be faster as one query.
+## select * from yql.query.multi where queries="SELECT * FROM yahoo.finance.quotes WHERE symbol='T'; SELECT * FROM yahoo.finance.keystats WHERE symbol='T'"
+
 
 # ****Data Layer****
 # The Data Layer is responsible for obtaining data from either the web or the database
 # It will also contain the database utilities necessary to create the database.
 
 
-# create_database(database_name = "stocksdata.db"):
-# Create the SQLite database to store stock information for all stocks we're interested in.
-# Stock data that doesn't need to get updated all the time is stored here.
-# There is an optional parameter to specify a database name. This is only used for unit testing
-# so that I don't have to destroy the existing database each time the test is ran.
+# Create the SQLite database to store stock information for all stocks we're
+# interested in. Stock data that doesn't need to get updated all the time is
+# stored here. There is an optional parameter to specify a database name.
+# This is only used for unit testing so that I don't have to destroy the
+# existing database each time the test runs.
 def create_database(database_name = "stocksdata.db"):
     # Create or open the database
     db = sqlite.connect(os.path.dirname(__file__)+"\\"+database_name)
@@ -75,9 +81,9 @@ def create_database(database_name = "stocksdata.db"):
 
 
 
-# get_wikipedia_snp500_list():
 # Get a list of all current S&P 500 stocks off of Wikipedia.
-# Since Wikipedia is constantly updated, this should always be an up to date list.
+# Since Wikipedia is constantly updated, this should always be an
+# up to date list.
 def get_wikipedia_snp500_list():
     #Download and parse the Wikipedia list of S&P500
     #constituents using requests and libxml.
@@ -95,15 +101,15 @@ def get_wikipedia_snp500_list():
 
 
 
-# track_stock_symbols(symbol_list):
-# Takes a list of symbols in format ['AAPL', 'MSFT'] and stores them in the database
-# so that the program will track them in the future.
-# This function also "primes" the data by looking up rarely changing data and
-# storing it so that we don't have to look it up each time we refresh data off
-# the web. This includes "stocks" data as well as dividend history.
+# Takes a list of symbols in format ['AAPL', 'MSFT'] and stores them in
+# the database so that the program will track them in the future.
+# This function also "primes" the data by looking up rarely changing data
+# and storing it so that we don't have to look it up each time we refresh
+# data off the web. This includes "stocks" data as well as dividend history.
 # If you pass a symbol that already exists in the database it just ignores it.
-# There is an optional parameter to specify a database name. This is only used for unit testing
-# so that I don't have to destroy the existing database each time the test is ran.
+# There is an optional parameter to specify a database name. This is only used
+# for unit testing so that I don't have to destroy the existing database each
+# time the test is ran.
 def track_stock_symbols(symbol_list, database = "stocksdata.db"):
     if type(symbol_list) != type(list()):
         raise Exception("symbol_list must be a list")
@@ -189,7 +195,6 @@ def track_stock_symbols(symbol_list, database = "stocksdata.db"):
 
 
 
-# get_stocks_data(symbol_list):
 # Given a list of symbols, get the "stocks" data from Yahoo to
 # store in the database. Returns in a standardized format.
 def get_stocks_data(symbol_list):
@@ -220,8 +225,8 @@ def get_stocks_data(symbol_list):
 
 
 
-# get_dividend_history(symbol_list):
-# From a list of symbols, get dividend history data. Returns in a standardized format.
+# From a list of symbols, get dividend history data. Returns in a
+# standardized format.
 def get_dividend_history(symbol_list):
 
     if type(symbol_list) != type(list()):
@@ -257,9 +262,9 @@ def get_dividend_history(symbol_list):
 
 
 
-# standardize_data(data):
-# Fix output so that there isn't such inconsistency in the data. i.e. "N/A" = 0.00 for a dividend, etc.
-# This function can take any data set (quotes, stocks, key_stats) except Dividend History.
+# Fix output so that there isn't such inconsistency in the data.
+# i.e. "N/A" = 0.00 for a dividend, etc. This function can take any data
+# set (quotes, stocks, key_stats) except Dividend History.
 def standardize_data(data):
     all_fields = ALL_FIELDS.split(", ")
     for row in data:
@@ -332,9 +337,8 @@ def standardize_data(data):
 
 
 
-# standardize_dividend_history_data(div_history_data)
-# Fix output so that there isn't such inconsistency in the data. i.e. "N/A" = 0.00 for a dividend, etc.
-# This function takes only dividend history data.
+# Fix output so that there isn't such inconsistency in the data.
+# i.e. "N/A" = 0.00 for a dividend, etc. This function takes only dividend history data.
 def standardize_dividend_history_data(div_history_data):
     div_hist_fields = DIVIDEND_HISTORY_FIELDS.split(", ")
 
@@ -364,8 +368,8 @@ def standardize_dividend_history_data(div_history_data):
 
 
 
-# convert_to_float(value):
-# Attempt to convert value to a float (decimal) format or else raise a ValueError exception
+# Attempt to convert value to a float (decimal) format or else raise a
+# ValueError exception
 def convert_to_float(value):
     value = str(value).replace(",","")
 
@@ -388,8 +392,8 @@ def convert_to_float(value):
 
 
 
-# convert_to_date(value):
-# Attempt to convert value to a date format or else raise a ValueError exception
+# Attempt to convert value to a date format or else raise a
+# ValueError exception
 def convert_to_date(value):
     if value == "N/A" or value == None or value == "None" or "NaN" in value:
         return None
@@ -405,8 +409,8 @@ def convert_to_date(value):
 
 
 
-# is_number(s)
-# Pass a string and return True if it can be converted to a float without an exception
+# Pass a string and return True if it can be converted to a float without
+# an exception
 def is_number(s):
     s = str(s)
     try:
@@ -427,7 +431,6 @@ def is_number(s):
 
 
 
-# execute_yql(yql):
 # Takes a Yahoo Query Language statement and executes it via the Yahoo API
 # Standardizes the format so that the return result is a dictionary with the
 # symbol (in upper case) is the key for the data.
@@ -504,13 +507,14 @@ def execute_yql(yql):
 
 
 
-# retrieve_stock_list_from_db():
 # Retrieve the entire stock_list table from the database with all fields.
 # Returns a list with a tuple for all rows with tuple in this format:
-# (rowid, symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated)
-# If the optional parameter is set to "", retrieve entire table, otherwise, retrieve just one symbol
-# There is also an optional parameter to specify a database name. This is only used for unit testing
-# so that I don't have to destroy the existing database each time the test is ran.
+# (rowid, symbol, industry, sector, start, full_time_employees, has_dividends,
+# last_dividend_date, last_updated).
+# If the optional parameter is set to "", retrieve entire table, otherwise,
+# retrieve just one symbol. There is also an optional parameter to specify a
+# database name. This is only used for unit testing so that I don't have to
+# destroy the existing database each time the test is ran.
 def retrieve_stock_list_from_db(symbol = "", database="stocksdata.db"):
 
     db = sqlite.connect(os.path.dirname(__file__)+"\\"+database)
@@ -527,13 +531,14 @@ def retrieve_stock_list_from_db(symbol = "", database="stocksdata.db"):
 
 
 
-# retrieve_dividend_history_from_db():
 # Retrieve the entire dividend_history table from the database with all fields.
 # Returns a list with a tuple for all rows with tuple in this format:
-# (rowid, symbol, industry, sector, start, full_time_employees, has_dividends, last_dividend_date, last_updated)
-# If the optional parameter is set to "", retrieve entire table, otherwise, retrieve just one symbol
-# There is also an optional parameter to specify a database name. This is only used for unit testing
-# so that I don't have to destroy the existing database each time the test is ran.
+# (rowid, symbol, industry, sector, start, full_time_employees, has_dividends,
+# last_dividend_date, last_updated).
+# If the optional parameter is set to "", retrieve entire table, otherwise,
+# retrieve just one symbol. There is also an optional parameter to specify a
+# database name. This is only used for unit testing so that I don't have to
+# destroy the existing database each time the test is ran.
 def retrieve_dividend_history_from_db(stockid = "", database="stocksdata.db"):
 
     db = sqlite.connect(os.path.dirname(__file__)+"\\"+database)
@@ -545,6 +550,10 @@ def retrieve_dividend_history_from_db(stockid = "", database="stocksdata.db"):
     result = cursor.fetchall()
     db.close()
     return result
+
+
+
+
 
 
 
@@ -834,227 +843,5 @@ def get_any_data(symbol_list, table, fields="*"):
 
 
 
-
-
-import unittest
-
-class test_stock_data_utilities(unittest.TestCase):
-
-
-
-    #Unit Test get_stocks_data
-    def test_dividend_history(self):
-    # Test list of quotes with upper and lowercase symbols
-        data = get_dividend_history(['aapl', 'T', 'MSFT'])
-
-        hist = []
-        try:
-            hist = data['AAPL']['DividendHistory']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(len(hist) <= 0.0)
-
-        try:
-            hist = data['T']['DividendHistory']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(len(hist) <= 0.0)
-
-        try:
-            hist = data['MSFT']['DividendHistory']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(len(hist) <= 0.0)
-
-        found = True
-        try:
-            hist = data['WMT']['DividendHistory']
-        except Exception, error:
-            found = True
-
-        self.failIf(found == False)
-
-        # Test a list of one, both upper and lowercase
-        data = get_dividend_history(['aapl'])
-
-        try:
-            hist = data['AAPL']['DividendHistory']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        data = get_dividend_history(['AAPL'])
-
-        try:
-            hist = data['AAPL']['DividendHistory']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-
-    #Unit Test get_quotes_data
-    def test_get_quotes_data(self):
-        # Test list of quotes with upper and lowercase symbols
-        quote_data = get_quotes_data(['aapl', 'T', 'MSFT'])
-
-        price = 0.0
-
-        try:
-            price = quote_data['AAPL']['LastTradePriceOnly']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(price <= 0.0)
-
-        try:
-            price = quote_data['T']['LastTradePriceOnly']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(price <= 0.0)
-
-        try:
-            price = quote_data['MSFT']['LastTradePriceOnly']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(price <= 0.0)
-
-        found = True
-        try:
-            price = quote_data['WMT']['LastTradePriceOnly']
-        except Exception, error:
-            found = False
-
-        self.failIf(found == True)
-
-        # Test a list of one, both upper and lowercase
-        quote_data = get_quotes_data(['aapl'])
-
-        try:
-            price = quote_data['AAPL']['LastTradePriceOnly']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        quote_data = get_quotes_data(['AAPL'])
-
-        try:
-            price = quote_data['AAPL']['LastTradePriceOnly']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-
-    #Unit Test get_key_stats_data
-    def test_get_key_stats_data(self):
-        # Test list of quotes with upper and lowercase symbols
-        data = get_key_stats_data(['aapl', 'T', 'MSFT'])
-
-        value = 0.00
-
-        try:
-            value = data['AAPL']['TotalDebt']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(value <= 0.0)
-
-        try:
-            value = data['T']['TotalDebt']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(value <= 0.0)
-
-        try:
-            value = data['MSFT']['TotalDebt']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(value <= 0.0)
-
-        found = True
-        try:
-            value = data['WMT']['TotalDebt']
-        except Exception, error:
-            found = False
-
-        self.failIf(found == True)
-
-        # Test a list of one, both upper and lowercase
-        data = get_key_stats_data(['aapl'])
-
-        try:
-            value = data['AAPL']['TotalDebt']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        data = get_key_stats_data(['AAPL'])
-
-        try:
-            value = data['AAPL']['TotalDebt']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-
-    #Unit Test get_stocks_data
-    def test_get_stocks_data(self):
-        # Test list of quotes with upper and lowercase symbols
-        data = get_stocks_data(['aapl', 'T', 'MSFT'])
-
-        value = 0.0
-
-        try:
-            value = data['AAPL']['start']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(value <= 0.0)
-
-        try:
-            value = data['T']['start']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        if value <= 0.0:
-            return False
-
-        try:
-            value = data['MSFT']['start']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        self.failIf(value <= 0.0)
-
-        found = True
-        try:
-            value = data['WMT']['start']
-        except Exception, error:
-            found = False
-
-        self.failIf(found == True)
-
-        # Test a list of one, both upper and lowercase
-        data = get_stocks_data(['aapl'])
-
-        try:
-            value = data['AAPL']['start']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-        data = get_stocks_data(['AAPL'])
-
-        try:
-            value = data['AAPL']['start']
-        except Exception, error:
-            self.fail("Failure: %s" % error)
-
-
-
-
-if __name__ == '__main__':
-    unittest.main()
-
-    
 
 

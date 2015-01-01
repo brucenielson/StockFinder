@@ -131,7 +131,7 @@ def track_stock_symbols(symbol_list, database = "stocksdata.db"):
 
     # Get data to store for this new symbol
     stocks_data = get_stocks_data(new_symbols)
-    div_hist_data = get_dividend_history(new_symbols)
+    div_hist_data = get_dividend_history_data(new_symbols)
 
     insert_stocks_list = []
     insert_div_hist_list = []
@@ -196,9 +196,9 @@ def track_stock_symbols(symbol_list, database = "stocksdata.db"):
 
 
 
-def get_stored_data(symbol_list):
+def get_stock_and_dividend_history_data(symbol_list):
     """
-    get_stored_data() takes a symbol list and returns Stocks and Dividend History data for storing
+    get_stock_and_dividend_history_data() takes a symbol list and returns Stocks and Dividend History data for storing
     in the database.
 
     :param symbol_list: a list of stock ticker symbols in upper case, i.e. ['AAPL', 'T', 'MSFT'] etc.
@@ -278,7 +278,7 @@ def get_stocks_data(symbol_list):
 
 # From a list of symbols, get dividend history data. Returns in a
 # standardized format.
-def get_dividend_history(symbol_list):
+def get_dividend_history_data(symbol_list):
 
     if type(symbol_list) != type(list()):
         raise Exception("symbol_list must be a list")
@@ -539,11 +539,18 @@ def execute_yql(yql):
         for row in json_data:
             row_keys = row.keys()
             if 'stock' in row_keys or 'stats' in row_keys:
-                data_dict = format_basic_data(json_data)
-
+                data = format_basic_data(row)
             elif 'quote' in row_keys:
                 # Now deal with "quote" which can be either quote data or dividend history, thanks to YQL for screwing that up.
-                data_dict = parse_quote_data(json_data)
+                data = parse_quote_data(row)
+
+            # Loop through each entry in the re-formated data to merge everything together
+            for symbol in data:
+                for entry in data[symbol]:
+                    if symbol not in data_dict:
+                        data_dict[symbol] = {}
+                    data_dict[symbol][entry] = data[symbol][entry]
+
 
     else: #'results' not in json_data.keys()
         # No "result" key, so this isn't a multi-query
@@ -704,79 +711,6 @@ def get_symbol(data):
 
 
 
-# Takes a Yahoo Query Language statement and executes it via the Yahoo API
-# Standardizes the format so that the return result is a dictionary with the
-# symbol (in upper case) is the key for the data.
-def execute_yql_old(yql):
-    print yql
-    url = "http://query.yahooapis.com/v1/public/yql?q=" \
-            + urllib2.quote(yql) \
-            + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
-
-    try:
-        result = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
-        raise Exception("HTTP error: ", e.code, e.reason);
-    except urllib2.URLError, e:
-        raise Exception("Network error: ", e.reason);
-
-    result = json.loads(result.read())
-
-    json_data = result['query']['results']
-
-    if json_data == None:
-        return None
-
-    else:
-        json_data = json_data[json_data.keys()[0]]
-        data_dict = {}
-
-        if type(json_data) == type(list()) and 'Dividends' in json_data[0] and 'Date' in json_data[0]:
-            # Dividend history is a list, so iterate through it and group symbols together
-            list_iter = iter(json_data)
-            row = next(list_iter,"eof")
-
-            while row != "eof":
-                current_symbol = row['Symbol'].upper()
-                last_symbol = ""
-                data_dict[current_symbol] = {}
-                data_dict[current_symbol]['DividendHistory'] = []
-
-                while row != "eof" and current_symbol == row['Symbol'].upper():
-                    data_dict[current_symbol]['DividendHistory'].append(row)
-                    last_symbol = current_symbol
-                    row = next(list_iter, "eof")
-
-                # sort the list - is this necessary?
-                data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: datetime.datetime.strptime(x['Date'],"%Y-%m-%d"), reverse=True)
-
-        # otherwise this is quote, stock, or stats data
-        else:
-
-            # If only one row is returned, it comes back as a dictionary
-            if type(json_data) == type(dict()):
-                try:
-                    data_dict[json_data['symbol'].upper()] = json_data
-                except:
-                    try:
-                        data_dict[json_data['Symbol'].upper()] = json_data
-                    except:
-                        data_dict[json_data['sym'].upper()] = json_data
-            # else if multiple rows come back, it returns it as a list
-            else:
-                for entry in json_data:
-                    symbol = ""
-                    try:
-                        symbol = entry['symbol'].upper()
-                    except:
-                        try:
-                            symbol = entry['sym'].upper()
-                        except:
-                            symbol = entry['Symbol'].upper()
-
-                    data_dict[symbol] = entry
-
-        return data_dict
 
 
 
@@ -938,7 +872,6 @@ def get_key_stats_data(symbol_list):
 
 
         result = execute_yql(yql)
-        print result
         remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
         final = dict(final.items() + result.items())
 
@@ -971,7 +904,7 @@ def get_combined_data(symbol_list):
     quotes = get_quotes_data(symbol_list)
     stocks = get_stocks_data(symbol_list)
     key_stats = get_key_stats_data(symbol_list)
-    div_hist = get_dividend_history(symbol_list)
+    div_hist = get_dividend_history_data(symbol_list)
 
     data = quotes
 

@@ -9,7 +9,7 @@ class test_stock_data_utilities(unittest.TestCase):
     #Unit Test get_stocks_data
     def test_dividend_history(self):
     # Test list of quotes with upper and lowercase symbols
-        data = get_dividend_history(['aapl', 'WMT', 'MSFT'])
+        data = get_dividend_history_data(['aapl', 'WMT', 'MSFT'])
 
         hist = []
         try:
@@ -36,14 +36,14 @@ class test_stock_data_utilities(unittest.TestCase):
         self.failIf(found == False)
 
         # Test a list of one, both upper and lowercase
-        data = get_dividend_history(['aapl'])
+        data = get_dividend_history_data(['aapl'])
 
         try:
             hist = data['AAPL']['DividendHistory']
         except Exception, error:
             self.fail("Failure: %s" % error)
 
-        data = get_dividend_history(['AAPL'])
+        data = get_dividend_history_data(['AAPL'])
 
         try:
             hist = data['AAPL']['DividendHistory']
@@ -149,6 +149,7 @@ class test_stock_data_utilities(unittest.TestCase):
 
         data = get_key_stats_data(['AAPL'])
 
+
         try:
             value = data['AAPL']['TotalDebt']
         except Exception, error:
@@ -206,6 +207,88 @@ class test_stock_data_utilities(unittest.TestCase):
         except Exception, error:
             self.fail("Failure: %s" % error)
 
+
+
+
+    def test_get_stock_and_dividend_history_data(self):
+                # Test list of quotes with upper and lowercase symbols
+        data = get_stock_and_dividend_history_data(['aapl', 'WMT', 'MSFT',])
+
+        value = 0.0
+
+        try:
+            value = data['AAPL']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(type(value) == type(datetime.datetime))
+
+        try:
+            value = data['WMT']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(type(value) == type(datetime.datetime))
+
+        try:
+            value = data['MSFT']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(type(value) == type(datetime.datetime))
+
+        hist = []
+        try:
+            hist = data['AAPL']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(len(hist) <= 0.0)
+
+
+        try:
+            hist = data['MSFT']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        self.failIf(len(hist) <= 0.0)
+
+        found = True
+        try:
+            hist = data['WMT']['DividendHistory']
+        except Exception, error:
+            found = True
+
+        self.failIf(found == False)
+
+
+
+
+        # Test a list of one, both upper and lowercase
+        data = get_stock_and_dividend_history_data(['aapl'])
+
+        try:
+            value = data['AAPL']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        try:
+            hist = data['AAPL']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+
+        data = get_stock_and_dividend_history_data(['AAPL'])
+
+        try:
+            value = data['AAPL']['start']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
+
+        try:
+            hist = data['AAPL']['DividendHistory']
+        except Exception, error:
+            self.fail("Failure: %s" % error)
 
 
 

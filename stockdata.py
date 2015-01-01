@@ -1,3 +1,7 @@
+# ****Data Layer****
+# The Data Layer is responsible for obtaining data from either the web or the database
+# It will also contain the database utilities necessary to create the database.
+
 import urllib2
 import json
 import datetime
@@ -44,9 +48,7 @@ LAST_UPDATED = 8
 ## select * from yql.query.multi where queries="SELECT * FROM yahoo.finance.quotes WHERE symbol='T'; SELECT * FROM yahoo.finance.keystats WHERE symbol='T'"
 
 
-# ****Data Layer****
-# The Data Layer is responsible for obtaining data from either the web or the database
-# It will also contain the database utilities necessary to create the database.
+
 
 
 # Create the SQLite database to store stock information for all stocks we're
@@ -194,6 +196,55 @@ def track_stock_symbols(symbol_list, database = "stocksdata.db"):
 
 
 
+def get_stored_data(symbol_list):
+    """
+    get_stored_data() takes a symbol list and returns Stocks and Dividend History data for storing
+    in the database.
+
+    :param symbol_list: a list of stock ticker symbols in upper case, i.e. ['AAPL', 'T', 'MSFT'] etc.
+    :return: returns a data object that is a dictionary of stock symbols with the data as sub entries,
+    i.e. {'AAPL': {Industry: 'Electronics', 'DividendHistory': {... dividend history}. It will contain
+    "Stocks" data and Dividend History, both of which are to be stored in the database rather than
+    retrieved in real time.
+    """
+
+    if type(symbol_list) != type(list()):
+        raise Exception("symbol_list must be a list")
+
+    # make a copy of the list so that we can re-run yql until we get the full list
+    #remaining_symbols = symbol_list[:]
+    remaining_symbols = [symbol.upper() for symbol in symbol_list]
+    result = {}
+    final = {}
+
+    # Since YQL fails a lot, do a loop until you get everything in the whole
+    # original list of symbols
+    while len(remaining_symbols) > 0:
+        yql = "select * from yql.query.multi where queries = \""\
+            + "SELECT * FROM yahoo.finance.stocks WHERE symbol in ("\
+            + '\'' \
+            + '\',\''.join(remaining_symbols) \
+            + '\'' \
+            + "); " \
+            + "SELECT * FROM yahoo.finance.dividendhistory WHERE "\
+            + "startDate = \'%s-%s-%s\' and endDate = \'%s-%s-%s\' and symbol in (" \
+            + '\'' \
+            + '\',\''.join(remaining_symbols) \
+            + '\'' \
+            + ")\""
+
+        today = datetime.datetime.now()
+        yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
+        result = execute_yql(yql)
+        return result
+        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
+        final = dict(final.items() + result.items())
+
+    return final #standardize_data(final)
+
+
+
+
 
 # Given a list of symbols, get the "stocks" data from Yahoo to
 # store in the database. Returns in a standardized format.
@@ -244,15 +295,16 @@ def get_dividend_history(symbol_list):
     # original list of symbols
     while len(remaining_symbols) > 0 and result != None:
         yql = "select "+ DIVIDEND_HISTORY_FIELDS +" from yahoo.finance.dividendhistory where"\
-                        + " startDate = \"%s-%s-%s\" and endDate = \"%s-%s-%s\""\
+                        + " startDate = \"\" and endDate = \"\""\
                         + " and symbol in (" \
                         +'\'' \
                         + '\',\''.join(remaining_symbols) \
                         + '\'' \
                         + ")"
 
-        yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
+        # yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
         result = execute_yql(yql)
+
         if result != None:
             remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
             final = dict(final.items() + result.items())
@@ -435,6 +487,228 @@ def is_number(s):
 # Standardizes the format so that the return result is a dictionary with the
 # symbol (in upper case) is the key for the data.
 def execute_yql(yql):
+    url = "http://query.yahooapis.com/v1/public/yql?q=" \
+            + urllib2.quote(yql) \
+            + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
+
+    try:
+        result = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        raise Exception("HTTP error: ", e.code, e.reason)
+    except urllib2.URLError, e:
+        raise Exception("Network error: ", e.reason)
+
+
+    result = json.loads(result.read())
+
+    json_data = result['query']['results']
+
+    # If multiple rows come back, it comes back as a list inside "quote" or whatever the type is
+    # {u'quote': [{u'YearLow': u'70.5071',...
+
+    # If just one row comes back, it isn't in a list:
+    # {u'quote': {u'YearLow': u'70.5071', ...
+
+    # Dividend history is a bit different, as it should have a list.
+    # {u'quote': [{u'Date': u'2014-02-06', u'Dividends': u'0.435710', u'Symbol': u'AAPL'}, {u...
+    # Oops,new wrinkle, Dividend history, if it only has one dividend, does not come back as a list:
+    #{u'quote': {u'Date': u'2014-11-06', u'Dividends': u'0.470000', u'Symbol': u'AAPL'}}
+
+    # But doing a multi return is different:
+    # "results" at front, then a list of "stock" data. First one:
+    # {u'results': [{u'stock': [{u'Sector': u'Consumer Goods',...
+    # Next one:
+    # {u'Sector': u'Technology', u'end': u'2015-01-01',...
+    # Finally dividend history all mixed together:
+    # {u'quote': [{u'Date': u'2014-02-06', u'Dividends': u'0.435710', u'Symbol': u'AAPL'}, ...
+
+
+    data_dict = {}
+
+    # If this has an extra "results" then its a multi select. Remove "result"
+    # and then grab the different types of data (i.e. "stock" and "dividend") portions
+    # into separate pieces
+    if 'results' in json_data.keys():
+        json_data = json_data['results']
+
+        # Return None if there is no data in the result.
+        if json_data == None:
+            return None
+
+        # Loop through each part of the multi-query
+        for row in json_data:
+            row_keys = row.keys()
+            if 'stock' in row_keys or 'stats' in row_keys:
+                data_dict = format_basic_data(json_data)
+
+            elif 'quote' in row_keys:
+                # Now deal with "quote" which can be either quote data or dividend history, thanks to YQL for screwing that up.
+                data_dict = parse_quote_data(json_data)
+
+    else: #'results' not in json_data.keys()
+        # No "result" key, so this isn't a multi-query
+
+        # Return None if there is no data in the result.
+        if json_data == None:
+            return None
+
+        if 'stock' in json_data.keys() or 'stats' in json_data.keys():
+            data_dict = format_basic_data(json_data)
+
+        elif 'quote' in json_data.keys():
+            # Now deal with "quote" which can be either quote data or dividend history, thanks to YQL for screwing that up.
+            data_dict = parse_quote_data(json_data)
+
+    return data_dict
+
+
+
+def parse_quote_data(data):
+    # Now deal with "quote" which can be either quote data or dividend history, thanks to YQL for screwing that up.
+    data_dict={}
+
+    if type(data['quote']) == type(dict()):
+        # This is a single row of either type
+
+        if 'Dividends' in data['quote']:
+            # This is a single dividend row
+            data_dict = format_dividend_history_data(data)
+        elif 'LastTradePriceOnly' in data['quote']:
+            # This is a single quote row
+            data_dict = format_basic_data(data)
+
+    elif type(data['quote']) == type(list()):
+        # This is multiple rows of either type
+        if 'Dividends' in data['quote'][0]:
+            # Process the list of dividend history data
+            data_dict = format_dividend_history_data(data)
+        elif 'LastTradePriceOnly' in data['quote'][0]:
+            # Process the list of quote data
+            data_dict = format_basic_data(data)
+    else:
+        raise Exception("'Quote' data is not in either quote or dividend history format.")
+
+    return data_dict
+
+
+def format_dividend_history_data(data):
+    """
+    Pass "dividend history" data not "basic data" or multi-queries)
+    and it will put it into the standard dictionary format
+    with each stock symbol being a dictionary entry and the data all properly
+    associated with it
+    :param data: "dividend history" data in one of these formats:
+     {u'quote': [{u'Date': u'2014-02-06', u'Dividends': u'0.435710', u'Symbol': u'AAPL'}, {u... OR
+     {u'quote': {u'Date': u'2014-11-06', u'Dividends': u'0.470000', u'Symbol': u'AAPL'}} OR
+     {u'Date': u'2014-11-06', u'Dividends': u'0.470000', u'Symbol': u'AAPL'} OR
+     [{u'Date': u'2014-11-06', u'Dividends': u'0.470000',...
+    :return: Comes back as a dictionary in this format:
+    {u'AAPL': {u'YearLow': u'70.5071'... etc...
+    Stock symbol will always be upper case.
+    """
+    data_dict = {}
+    # Get rid of the 'quote' at the front
+    # You end up with either a list of dictionaries or a single dictionary
+    if type(data) == type(dict()) and 'quote' in data.keys():
+        try:
+            data = data['quote']
+        except:
+            raise Exception("Dividend History data in wrong format.")
+
+
+    if type(data) == type(dict()):
+        # This is a single dividend history row, so it's not in a list
+        symbol = data['Symbol'].upper()
+        data_dict[symbol]['DividendHistory'] = []
+        data_dict[symbol]['DividendHistory'].append(data)
+
+    else:
+        # This is a list of dividends
+        # Dividend history is a list, so iterate through it and group symbols together
+        list_iter = iter(data)
+        row = next(list_iter,"eof")
+
+        while row != "eof":
+            current_symbol = row['Symbol'].upper()
+            last_symbol = ""
+            data_dict[current_symbol] = {}
+            data_dict[current_symbol]['DividendHistory'] = []
+
+            while row != "eof" and current_symbol == row['Symbol'].upper():
+                data_dict[current_symbol]['DividendHistory'].append(row)
+                last_symbol = current_symbol
+                row = next(list_iter, "eof")
+
+            # sort the list - is this necessary?
+            data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: datetime.datetime.strptime(x['Date'],"%Y-%m-%d"), reverse=True)
+
+    return data_dict
+
+
+
+def format_basic_data(data):
+    """
+    Pass "basic" data (i.e. "stock", "key stat", or "quote." NOT dividend history
+    or multi-queries) and it will put it into the standard dictionary format
+    with each stock symbol being a dictionary entry and the data all properly
+    associated with it
+    :param data: "basic" stock data in one of these formats:
+     {u'quote': [{u'YearLow': u'70.5071',... OR
+     {u'quote': {u'YearLow': u'70.5071', ... OR
+     {u'YearLow': u'70.5071', ...
+    :return: Comes back as a dictionary in this format:
+    {u'AAPL': {u'YearLow': u'70.5071'... etc...
+    Stock symbol will always be upper case.
+    """
+
+    data_dict = {}
+    # Get rid of the 'quote', 'stat', etc at the front
+    # You end up with either a list of dictionaries or a single dictionary
+    if type(data) == type(dict()):
+        data = data[data.keys()[0]]
+
+    if type(data) == type(dict()):
+        symbol = get_symbol(data)
+        data_dict[symbol] = data
+
+    # else if multiple rows come back, it returns it as a list
+    else:
+        for entry in data:
+            symbol = get_symbol(entry)
+            data_dict[symbol] = entry
+
+    return data_dict
+
+
+def get_symbol(data):
+    """
+    Called by format basic data. Takes data object in "basic format"
+     and NOT a list and returns the symbol for it.
+    :param data: basic data object in format:
+    {u'quote': {u'YearLow': u'70.5071', ...
+    :return: returns a stock symbol
+    """
+    symbol = ""
+    try:
+        symbol = data['symbol'].upper()
+    except:
+        try:
+            symbol = data['sym'].upper()
+        except:
+            symbol = data['Symbol'].upper()
+
+    if symbol == "":
+        raise Exception("Could not find a stock symbol in data.")
+
+    return symbol
+
+
+
+# Takes a Yahoo Query Language statement and executes it via the Yahoo API
+# Standardizes the format so that the return result is a dictionary with the
+# symbol (in upper case) is the key for the data.
+def execute_yql_old(yql):
+    print yql
     url = "http://query.yahooapis.com/v1/public/yql?q=" \
             + urllib2.quote(yql) \
             + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
@@ -664,6 +938,7 @@ def get_key_stats_data(symbol_list):
 
 
         result = execute_yql(yql)
+        print result
         remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
         final = dict(final.items() + result.items())
 
@@ -823,7 +1098,7 @@ def is_dividend_stock(stock_data_row):
 # include a symbol column
 def get_any_data(symbol_list, table, fields="*"):
 
-    if type(symbol_list) != type( list() ):
+    if type(symbol_list) != type(list()):
         raise Exception("symbol_list must be a list")
 
     

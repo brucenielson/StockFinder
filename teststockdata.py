@@ -6,7 +6,6 @@ __author__ = 'Bruce Nielson'
 class test_stock_data_utilities(unittest.TestCase):
 
 
-
     #Unit Test get_stocks_data
     def test_dividend_history(self):
     # Test list of quotes with upper and lowercase symbols

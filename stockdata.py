@@ -43,11 +43,6 @@ HAS_DIVIDENDS = 6
 LAST_DIVIDEND_DATE = 7
 LAST_UPDATED = 8
 
-## TODO:
-## Try this. Might be faster as one query.
-## select * from yql.query.multi where queries="SELECT * FROM yahoo.finance.quotes WHERE symbol='T'; SELECT * FROM yahoo.finance.keystats WHERE symbol='T'"
-
-
 
 
 
@@ -241,36 +236,31 @@ def get_stock_and_dividend_history_data(symbol_list):
     return final #standardize_data(final)
 
 
+def __process_symbol_list(symbol_list):
+    if type(symbol_list) == type(str()):
+        symbol_list = [symbol_list]
+    if type(symbol_list) != type(list()):
+        raise Exception("symbol_list must be a list")
 
+    # make list all upper case
+    symbol_list = [symbol.upper() for symbol in symbol_list]
 
+    return symbol_list
 
 # Given a list of symbols, get the "stocks" data from Yahoo to
 # store in the database. Returns in a standardized format.
 def get_stocks_data(symbol_list):
-
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
-
-    # make a copy of the list so that we can re-run yql until we get the full list
-    remaining_symbols = symbol_list[:]
-    remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
+    symbol_list = __process_symbol_list(symbol_list)
     result = {}
-    final = {}
+    yql = "select "+ STOCKS_FIELDS +" from yahoo.finance.stocks where symbol in (" \
+                    + '\'' \
+                    + '\',\''.join(symbol_list) \
+                    + '\'' \
+                    + ")"
 
-    # Since YQL fails a lot, do a loop until you get everything in the whole
-    # original list of symbols
-    while len(remaining_symbols) > 0:
-        yql = "select "+ STOCKS_FIELDS +" from yahoo.finance.stocks where symbol in (" \
-                        + '\'' \
-                        + '\',\''.join(remaining_symbols) \
-                        + '\'' \
-                        + ")"
+    result = execute_yql(yql)
 
-        result = execute_yql(yql)
-        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
-        final = dict(final.items() + result.items())
-
-    return standardize_data(final)
+    return standardize_data(result)
 
 
 
@@ -812,8 +802,34 @@ def store_stock_data(stock_data):
 
 
 def get_quotes_data(symbol_list):    
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
+    symbol_list = __process_symbol_list(symbol_list)
+    result = {}
+    yql = "select "+ QUOTES_FIELDS +" from yahoo.finance.quotes where symbol in (" \
+                    + '\'' \
+                    + '\',\''.join(symbol_list) \
+                    + '\'' \
+                    + ")"
+
+    result = execute_yql(yql)
+
+    # If there is no PERatio returned, then it's a fair bet there won't be any
+    # key stats for this quote
+    for row in result:
+        if result[row]['PERatio'] == None:
+            result[row]['HasKeyStats'] = False
+        else:
+            result[row]['HasKeyStats'] = True
+        
+    return standardize_data(result)
+
+
+
+def safe_get_data(function, symbol_list):
+    # Because YQL fails to bring everything back on a large data set
+    # this function will take any "get data" function, i.e.
+    # get_quotes_data(symbol_list), get_key_stats_data(symbol_list)
+    # etc. and a symbol_list and it will do the work of
+    # calling it multiple times until the result is everything
 
     # make a copy of the list so that we can re-run yql until we get the full list
     remaining_symbols = symbol_list[:]
@@ -821,75 +837,45 @@ def get_quotes_data(symbol_list):
     result = {}
     final = {}
 
-    # Since YQL fails a lot, do a loop until you get everything in the whole
-    # original list of symbols
     while len(remaining_symbols) > 0:
-        yql = "select "+ QUOTES_FIELDS +" from yahoo.finance.quotes where symbol in (" \
-                        + '\'' \
-                        + '\',\''.join(remaining_symbols) \
-                        + '\'' \
-                        + ")"
-
-        result = execute_yql(yql)
+        result = function(remaining_symbols)
         remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
         final = dict(final.items() + result.items())
-        
 
-    # If there is no PERatio returned, then it's a fair bet there won't be any
-    # key stats for this quote
-    for row in final:        
-        if final[row]['PERatio'] == None:
-            final[row]['NoKeyStats'] = True
-        else:
-            final[row]['NoKeyStats'] = False
-        
     return final
+
 
 
     
 def get_key_stats_data(symbol_list):
-
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
-
-
-    # make a copy of the list so that we can re-run yql until we get the full list
-    remaining_symbols = symbol_list[:]
-    remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
+    symbol_list = __process_symbol_list(symbol_list)
     result = {}
-    final = {}
-
-    # Since YQL fails a lot, do a loop until you get everything in the whole
-    # original list of symbols
-    while len(remaining_symbols) > 0:
-        yql = "select "+ KEY_STATS_FIELDS +" from yahoo.finance.keystats where symbol in (" \
-                        + '\'' \
-                        + '\',\''.join(remaining_symbols) \
-                        + '\'' \
-                        + ")"
+    yql = "select "+ KEY_STATS_FIELDS +" from yahoo.finance.keystats where symbol in (" \
+                    + '\'' \
+                    + '\',\''.join(symbol_list) \
+                    + '\'' \
+                    + ")"
 
 
-        result = execute_yql(yql)
-        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
-        final = dict(final.items() + result.items())
+    result = execute_yql(yql)
 
     #Reformat to make it easy to get data
     value = 0
-    for symbol in final.keys():
-        for key in final[symbol].keys():
-            if type(final[symbol][key]) == type(dict()):
+    for symbol in result.keys():
+        for key in result[symbol].keys():
+            if type(result[symbol][key]) == type(dict()):
                 try:
-                    value = final[symbol][key]['content']
+                    value = result[symbol][key]['content']
                 except:
                     value = None
             else:                    
-                value = final[symbol][key]
+                value = result[symbol][key]
 
-            final[symbol][key] = value
+            result[symbol][key] = value
         #print str(symbol) + " - " + str(len(final[symbol]))
 
 
-    return final
+    return standardize_data(result)
 
 
 

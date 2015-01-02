@@ -21,16 +21,16 @@ KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerSha
          + "TotalDebtEquity"
 
 
-QUOTES_FIELDS = "Symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
+QUOTE_FIELDS = "Symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
          + "EarningsShare, PERatio, PriceSales, PEGRatio, ShortRatio, " \
          + "BookValue, PriceBook"
 
-STOCKS_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
+STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
 
 DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 
 
-ALL_FIELDS = QUOTES_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCKS_FIELDS
+ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
 
 # Order of fields in Stock List table
 ROWID = 0
@@ -125,7 +125,7 @@ def track_stock_symbols(symbol_list, database = "stocksdata.db"):
         return
 
     # Get data to store for this new symbol
-    stocks_data = get_stocks_data(new_symbols)
+    stocks_data = get_stock_data(new_symbols)
     div_hist_data = get_dividend_history_data(new_symbols)
 
     insert_stocks_list = []
@@ -216,12 +216,12 @@ def get_stock_and_dividend_history_data(symbol_list):
     # original list of symbols
     while len(remaining_symbols) > 0:
         yql = "select * from yql.query.multi where queries = \""\
-            + "SELECT * FROM yahoo.finance.stocks WHERE symbol in ("\
+            + "SELECT "+STOCK_FIELDS+" FROM yahoo.finance.stocks WHERE symbol in ("\
             + '\'' \
             + '\',\''.join(remaining_symbols) \
             + '\'' \
             + "); " \
-            + "SELECT * FROM yahoo.finance.dividendhistory WHERE "\
+            + "SELECT "+DIVIDEND_HISTORY_FIELDS+" FROM yahoo.finance.dividendhistory WHERE "\
              + "startDate = \'\' and endDate = \'\' and symbol in (" \
             + '\'' \
             + '\',\''.join(remaining_symbols) \
@@ -234,6 +234,7 @@ def get_stock_and_dividend_history_data(symbol_list):
         final = dict(final.items() + result.items())
 
     return final #standardize_data(final)
+    #TODO: Fix this
 
 
 def __process_symbol_list(symbol_list):
@@ -249,10 +250,10 @@ def __process_symbol_list(symbol_list):
 
 # Given a list of symbols, get the "stocks" data from Yahoo to
 # store in the database. Returns in a standardized format.
-def get_stocks_data(symbol_list):
+def get_stock_data(symbol_list):
     symbol_list = __process_symbol_list(symbol_list)
     result = {}
-    yql = "select "+ STOCKS_FIELDS +" from yahoo.finance.stocks where symbol in (" \
+    yql = "select "+ STOCK_FIELDS +" from yahoo.finance.stocks where symbol in (" \
                     + '\'' \
                     + '\',\''.join(symbol_list) \
                     + '\'' \
@@ -260,7 +261,7 @@ def get_stocks_data(symbol_list):
 
     result = execute_yql(yql)
 
-    return standardize_data(result)
+    return standardize_data(result, STOCK_FIELDS)
 
 
 
@@ -304,9 +305,10 @@ def get_dividend_history_data(symbol_list):
 
 # Fix output so that there isn't such inconsistency in the data.
 # i.e. "N/A" = 0.00 for a dividend, etc. This function can take any data
-# set (quotes, stocks, key_stats) except Dividend History.
-def standardize_data(data):
-    all_fields = ALL_FIELDS.split(", ")
+# set (quote, stock, key_stats) except Dividend History.
+def standardize_data(data, fields):
+    print data
+    all_fields = fields.split(", ")
     for row in data:
         for item in all_fields:
 
@@ -344,7 +346,7 @@ def standardize_data(data):
 
 
             # if item is a date
-            if item in ['Ex_DividendDate', 'start', 'DividendDate']:
+            elif item in ['Ex_DividendDate', 'start', 'DividendDate']:
                 value = data[row][item]
 
                 if value == "N/A" or value == None or value == "None" or "NaN" in value:
@@ -359,7 +361,7 @@ def standardize_data(data):
                             raise ValueError("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
             # if item is a percentage
-            if item in ['QtrlyEarningsGrowth', 'PayoutRatio', 'ProfitMargin', 'TrailingAnnualDividendYield',\
+            elif item in ['QtrlyEarningsGrowth', 'PayoutRatio', 'ProfitMargin', 'TrailingAnnualDividendYield',\
                         'ForwardAnnualDividendYield', 'p_5YearAverageDividentYield', 'OperatingMargin']:
 
                 value = data[row][item]
@@ -499,8 +501,13 @@ def execute_yql(yql):
         result = json.loads("")
     else:
         result = json.loads(result.read())
+    print result
 
     json_data = result['query']['results']
+
+    # Return None if there is no data in the result.
+    if json_data == None:
+        return None
 
     # If multiple rows come back, it comes back as a list inside "quote" or whatever the type is
     # {u'quote': [{u'YearLow': u'70.5071',...
@@ -530,10 +537,6 @@ def execute_yql(yql):
     if 'results' in json_data.keys():
         json_data = json_data['results']
 
-        # Return None if there is no data in the result.
-        if json_data == None:
-            return None
-
         # Loop through each part of the multi-query
         for row in json_data:
             row_keys = row.keys()
@@ -554,10 +557,6 @@ def execute_yql(yql):
     else: #'results' not in json_data.keys()
         # No "result" key, so this isn't a multi-query
 
-        # Return None if there is no data in the result.
-        if json_data == None:
-            return None
-
         if 'stock' in json_data.keys() or 'stats' in json_data.keys():
             data_dict = format_basic_data(json_data)
 
@@ -572,6 +571,8 @@ def execute_yql(yql):
 def parse_quote_data(data):
     # Now deal with "quote" which can be either quote data or dividend history, thanks to YQL for screwing that up.
     data_dict={}
+    if data == None:
+        return data_dict
 
     if type(data['quote']) == type(dict()):
         # This is a single row of either type
@@ -612,7 +613,11 @@ def format_dividend_history_data(data):
     {u'AAPL': {u'YearLow': u'70.5071'... etc...
     Stock symbol will always be upper case.
     """
+
     data_dict = {}
+    if (data == None):
+        return data_dict
+
     # Get rid of the 'quote' at the front
     # You end up with either a list of dictionaries or a single dictionary
     if type(data) == type(dict()) and 'quote' in data.keys():
@@ -668,6 +673,9 @@ def format_basic_data(data):
     """
 
     data_dict = {}
+    if data == None:
+        return data_dict
+
     # Get rid of the 'quote', 'stat', etc at the front
     # You end up with either a list of dictionaries or a single dictionary
     if type(data) == type(dict()):
@@ -812,10 +820,10 @@ def store_stock_data(stock_data):
 
 
 
-def get_quotes_data(symbol_list):    
+def get_quote_data(symbol_list):
     symbol_list = __process_symbol_list(symbol_list)
     result = {}
-    yql = "select "+ QUOTES_FIELDS +" from yahoo.finance.quotes where symbol in (" \
+    yql = "select "+ QUOTE_FIELDS +" from yahoo.finance.quotes where symbol in (" \
                     + '\'' \
                     + '\',\''.join(symbol_list) \
                     + '\'' \
@@ -831,14 +839,14 @@ def get_quotes_data(symbol_list):
         else:
             result[row]['HasKeyStats'] = True
         
-    return standardize_data(result)
+    return standardize_data(result, QUOTE_FIELDS)
 
 
 
 def safe_get_data(function, symbol_list):
     # Because YQL fails to bring everything back on a large data set
     # this function will take any "get data" function, i.e.
-    # get_quotes_data(symbol_list), get_key_stats_data(symbol_list)
+    # get_quote_data(symbol_list), get_key_stats_data(symbol_list)
     # etc. and a symbol_list and it will do the work of
     # calling it multiple times until the result is everything
 
@@ -886,7 +894,7 @@ def get_key_stats_data(symbol_list):
         #print str(symbol) + " - " + str(len(final[symbol]))
 
 
-    return standardize_data(result)
+    return standardize_data(result, KEY_STATS_FIELDS)
 
 
 
@@ -896,8 +904,8 @@ def get_key_stats_data(symbol_list):
 def get_combined_data(symbol_list):
     start_time = time.clock()
     
-    quotes = get_quotes_data(symbol_list)
-    stocks = get_stocks_data(symbol_list)
+    quotes = get_quote_data(symbol_list)
+    stocks = get_stock_data(symbol_list)
     key_stats = get_key_stats_data(symbol_list)
     div_hist = get_dividend_history_data(symbol_list)
 
@@ -930,7 +938,7 @@ def get_combined_data(symbol_list):
                         raise Exception("Data in Quotes and Stocks does not match: "\
                                     + "Key="+key+"; Value Quotes="+data[symbol][key]+" Value Stocks="+div_hist[symbol][key])
 
-    standardize_data(data)
+    standardize_data(data, ALL_FIELDS)
 
     end_time = time.clock()
     print str(end_time-start_time) + " seconds"

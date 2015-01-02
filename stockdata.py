@@ -227,16 +227,14 @@ def get_stock_and_dividend_history_data(symbol_list):
             + '\'' \
             + "); " \
             + "SELECT * FROM yahoo.finance.dividendhistory WHERE "\
-            + "startDate = \'%s-%s-%s\' and endDate = \'%s-%s-%s\' and symbol in (" \
+             + "startDate = \'\' and endDate = \'\' and symbol in (" \
             + '\'' \
             + '\',\''.join(remaining_symbols) \
             + '\'' \
             + ")\""
 
-        today = datetime.datetime.now()
-        yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
+        #yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
         result = execute_yql(yql)
-        return result
         remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
         final = dict(final.items() + result.items())
 

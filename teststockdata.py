@@ -1,5 +1,8 @@
 import unittest
+import mock
+
 from stockdata import *
+
 
 __author__ = 'Bruce Nielson'
 
@@ -52,6 +55,7 @@ class test_stock_data_utilities(unittest.TestCase):
 
 
     #Unit Test get_quotes_data
+    #@mock.patch('stockdata.urllib2')
     def test_get_quotes_data(self):
         # Test list of quotes with upper and lowercase symbols
         quote_data = get_quotes_data(['aapl', 'T', 'MSFT'])

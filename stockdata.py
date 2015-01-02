@@ -307,7 +307,6 @@ def get_dividend_history_data(symbol_list):
 # i.e. "N/A" = 0.00 for a dividend, etc. This function can take any data
 # set (quote, stock, key_stats) except Dividend History.
 def standardize_data(data, fields):
-    print data
     all_fields = fields.split(", ")
     for row in data:
         for item in all_fields:
@@ -501,7 +500,7 @@ def execute_yql(yql):
         result = json.loads("")
     else:
         result = json.loads(result.read())
-    print result
+    #print result
 
     json_data = result['query']['results']
 

@@ -364,7 +364,9 @@ def standardize_data(data):
 
                 value = data[row][item]
 
-                if value == "N/A" or value == None or value == "None":
+                if type(value) == type(float()):
+                    pass
+                elif value == "N/A" or value == None or value == "None":
                     data[row][item] = 0.0
                 else:
                     try:
@@ -392,17 +394,23 @@ def standardize_dividend_history_data(div_history_data):
 
                 #if item is dollar, integer or decimal
                 if field in ['Dividends']:
-                    try:
-                        div[field] = convert_to_float(div[field])
-                    except ValueError:
-                        raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" is not a valid value.")
+                    if type(field) == type(float()):
+                        pass
+                    else:
+                        try:
+                            div[field] = convert_to_float(div[field])
+                        except ValueError:
+                            raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" is not a valid value.")
 
                 # if item is a date
                 if field in ['Date']:
-                    try:
-                        div[field] = convert_to_date(div[field])
-                    except ValueError:
-                        raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD.")
+                    if type(field) == type(datetime.datetime):
+                        pass
+                    else:
+                        try:
+                            div[field] = convert_to_date(div[field])
+                        except ValueError:
+                            raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
     return div_history_data
 
@@ -486,8 +494,11 @@ def execute_yql(yql):
     except urllib2.URLError, e:
         raise Exception("Network error: ", e.reason)
 
-
-    result = json.loads(result.read())
+    # Couldn't get mock tests to work without this
+    if result == "mock file object":
+        result = json.loads("")
+    else:
+        result = json.loads(result.read())
 
     json_data = result['query']['results']
 

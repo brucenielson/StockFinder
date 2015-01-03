@@ -1,7 +1,8 @@
 import unittest
 import mock
 from stockdata import *
-
+import nose
+status = nose.run()
 
 # Raw data that fakes coming out of json.loads
 fake_quote_data_1 = {u'query': {u'count': 4, u'lang': u'en-US', u'results': {u'quote': [{u'YearLow': u'70.5071', u'PEGRatio': u'1.26', u'DividendShare': u'1.8457', u'BookValue': u'19.015', u'ShortRatio': u'1.90', u'PERatio': u'17.11', u'Symbol': u'AAPL', u'PriceSales': u'3.54', u'PriceBook': u'5.80', u'EarningsShare': u'6.45', u'LastTradePriceOnly': u'109.37', u'YearHigh': u'119.75'}, {u'YearLow': u'31.74', u'PEGRatio': u'2.91', u'DividendShare': u'1.84', u'BookValue': u'17.862', u'ShortRatio': u'12.90', u'PERatio': u'10.28', u'Symbol': u'T', u'PriceSales': u'1.33', u'PriceBook': u'1.88', u'EarningsShare': u'3.269', u'LastTradePriceOnly': u'33.83', u'YearHigh': u'37.48'}, {u'YearLow': u'34.63', u'PEGRatio': u'2.75', u'DividendShare': u'1.15', u'BookValue': u'10.923', u'ShortRatio': u'2.40', u'PERatio': u'18.21', u'Symbol': u'MSFT', u'PriceSales': u'4.18', u'PriceBook': u'4.25', u'EarningsShare': u'2.551', u'LastTradePriceOnly': u'46.66', u'YearHigh': u'50.05'}, {u'YearLow': u'489.00', u'PEGRatio': u'1.41', u'DividendShare': u'0.00', u'BookValue': u'145.685', u'ShortRatio': u'1.50', u'PERatio': u'27.70', u'Symbol': u'GOOG', u'PriceSales': u'5.26', u'PriceBook': u'3.61', u'EarningsShare': u'19.002', u'LastTradePriceOnly': u'524.71', u'YearHigh': u'604.83'}]}, u'created': u'2015-01-02T18:20:47Z'}}

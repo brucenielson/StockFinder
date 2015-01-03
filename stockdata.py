@@ -126,7 +126,8 @@ def track_stock_symbols(symbol_list, database = "stocksdata.db"):
 
     # Get data to store for this new symbol
     stocks_data = get_stock_data(new_symbols)
-    div_hist_data = get_dividend_history_data(new_symbols)
+    data = get_dividend_history_data(new_symbols)
+    div_hist_data = data
 
     insert_stocks_list = []
     insert_div_hist_list = []

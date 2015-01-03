@@ -7,8 +7,9 @@ import json
 import datetime
 import time
 import lxml.html
-import sqlite3 as sqlite
+import sqlite3
 import os
+import pickle
 
 __author__ = 'Bruce Nielson'
 
@@ -53,7 +54,7 @@ LAST_UPDATED = 8
 # existing database each time the test runs.
 def create_database(database_name = "stocksdata.db"):
     # Create or open the database
-    db = sqlite.connect(os.path.dirname(__file__)+"\\"+database_name)
+    db = sqlite3.connect(os.path.dirname(__file__)+"\\"+database_name)
 
     # if database already exists, drop all tables first
     db.execute('drop index if exists symbolx')
@@ -93,7 +94,24 @@ def get_wikipedia_snp500_list():
     page = lxml.html.parse('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
     symbol_list = page.xpath('//table[1]/tr/td[1]/a/text()')
 
-    return symbol_list
+    return [str(item) for item in symbol_list]
+
+
+def pickle_snp_500_list():
+    symbol_list = get_wikipedia_snp500_list()
+    f = open(os.path.dirname(__file__)+"\\"+'snplist.txt', 'w')
+    pickle.dump(symbol_list, f)
+    f.close()
+
+
+
+
+def get_pickled_snp_500_list():
+    f = open(os.path.dirname(__file__)+"\\"+'snplist.txt')
+    sl = pickle.load(f)
+    f.close()
+    return sl
+
 
 
 
@@ -333,7 +351,7 @@ def standardize_data(data, fields):
                     data[row][item] = 0.00
                 elif type(value) == type(float):
                     data[row][item] = float(value)
-                elif is_number(value):
+                elif __is_number(value):
                     data[row][item] = float(value)
                 elif value[len(value)-1] == "M":
                     data[row][item] = float(value[:len(value)-1])*1000000.00
@@ -400,7 +418,7 @@ def standardize_dividend_history_data(div_history_data):
                         pass
                     else:
                         try:
-                            div[field] = convert_to_float(div[field])
+                            div[field] = __convert_to_float(div[field])
                         except ValueError:
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" is not a valid value.")
 
@@ -410,7 +428,7 @@ def standardize_dividend_history_data(div_history_data):
                         pass
                     else:
                         try:
-                            div[field] = convert_to_date(div[field])
+                            div[field] = __convert_to_date(div[field])
                         except ValueError:
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
@@ -420,14 +438,14 @@ def standardize_dividend_history_data(div_history_data):
 
 # Attempt to convert value to a float (decimal) format or else raise a
 # ValueError exception
-def convert_to_float(value):
+def __convert_to_float(value):
     value = str(value).replace(",","")
 
     if value == "N/A" or value == None or value == "None":
         return 0.00
     elif type(value) == type(float):
         return float(value)
-    elif is_number(value):
+    elif __is_number(value):
         return float(value)
     elif value[len(value)-1] == "M":
         return float(value[:len(value)-1])*1000000.00
@@ -444,7 +462,7 @@ def convert_to_float(value):
 
 # Attempt to convert value to a date format or else raise a
 # ValueError exception
-def convert_to_date(value):
+def __convert_to_date(value):
     if value == "N/A" or value == None or value == "None" or "NaN" in value:
         return None
     else:
@@ -461,7 +479,7 @@ def convert_to_date(value):
 
 # Pass a string and return True if it can be converted to a float without
 # an exception
-def is_number(s):
+def __is_number(s):
     s = str(s)
     try:
         float(s)
@@ -682,19 +700,19 @@ def format_basic_data(data):
         data = data[data.keys()[0]]
 
     if type(data) == type(dict()):
-        symbol = get_symbol(data)
+        symbol = __get_symbol(data)
         data_dict[symbol] = data
 
     # else if multiple rows come back, it returns it as a list
     else:
         for entry in data:
-            symbol = get_symbol(entry)
+            symbol = __get_symbol(entry)
             data_dict[symbol] = entry
 
     return data_dict
 
 
-def get_symbol(data):
+def __get_symbol(data):
     """
     Called by format basic data. Takes data object in "basic format"
      and NOT a list and returns the symbol for it.
@@ -945,87 +963,6 @@ def get_combined_data(symbol_list):
     
     return data
 
-
-
-
-# Analyze data in various ways and label it. Input: data object with
-# all stocks as output by get_combined_data
-def analyze_data(data):
-    # loop through each stock and analyze if it's a dividend stock or not
-    for row in data:
-        if is_dividend_stock(data[row]):
-            data[row]['IsDividend'] = True
-        else:
-            data[row]['IsDividend'] = False
-
-
-        print row + " - " + str(data[row]['IsDividend'])
-            
-
-    
-
-# Pass this function a single row of standardized format stock data (i.e. that which comes out of
-# get_combined_data() and it will determine if this is a dividend stock or not
-def is_dividend_stock(stock_data_row):
-    if (type(stock_data_row) != dict) or 'Symbol' not in stock_data_row:
-        raise Exception("Parameter 'stock_data' must be a dictionary of data for a single stock")
-
-    has_key_stats = not stock_data_row['NoKeyStats']
-    forward_div = float(stock_data_row['ForwardAnnualDividendRate'])
-    has_forward_div = not forward_div == 0.00 or forward_div == "N/A"
-    has_div_hist = ('DividendHistory' in stock_data_row)
-    error_string = "Bad data for Symbol: " + stock_data_row['Symbol'] + " - has_key_stats: " + str(has_key_stats) + "; forward_div: " + str(forward_div) + \
-                   "; has_forward_div: " + str(has_forward_div) + "; has_div_hist: " + str(has_div_hist) + ". "
-
-    div_share = float(stock_data_row['DividendShare'])
-    div_date = stock_data_row['DividendDate']
-    ex_div = stock_data_row['Ex_DividendDate']
-
-    # key stats available
-    if has_key_stats:
-        if has_div_hist and has_forward_div:
-            # This is a dividend stock with history and plan to pay another
-            if (div_share > 0.00 and forward_div > 0.00 and div_date != None and ex_div != None):
-                return True
-            else:
-                raise Exception(error_string + "This stock should have a dividend share, a forward dividend rate, a dividend date, and an ex dividend date.")
-
-        elif not has_forward_div and has_div_hist:
-            # This is supposed to be a former dividend stock that cut its dividend
-
-            # Yahoo sometimes contains an old Ex_DividendDate / DividendDate and sometimes doesn't for stocks
-            # that cut their dividends. So don't check Ex_DividendDate for this case.
-            if (div_share == 0.00 and forward_div == 0.00):
-                return False
-            else:
-                raise Exception(error_string + "This stock should not have a dividend share nor a forward dividend rate.")
-
-        elif has_forward_div and not has_div_hist:
-            # This is a stock that has no dividends in the past, but is forecasting one
-            if (div_share == 0.00 and forward_div > 0.00 and div_date == None and ex_div == None):
-                return True
-            else:
-                raise Exception(error_string + "This stock should not have a dividend share, dividend date, or ex dividend date, but should have a forward dividend rate.")
-
-        else: # not has_forward_div and not has_div_hist:
-            # This is a stock that has no dividend history nor is it forecasting one
-            diff = datetime.timedelta(0)
-            if (ex_div != None): diff = datetime.datetime.now() - ex_div
-            if (div_share == 0.00 and forward_div == 0.00 and div_date == None and (ex_div == None or diff >= datetime.timedelta(10*365))):
-                return False
-            else:
-                raise Exception(error_string + "This stock should not have a dividend share, forward dividend rate, or dividend date. "\
-                        + "It should also not have an ex dividend rate or it should be older than 10 years old.")
-
-
-    else: # No key stats available, so only have a dividend share and div history
-        if stock_data_row['DividendShare'] > 0.00 and has_div_hist:
-            return True
-        elif not (stock_data_row['DividendShare'] > 0.00 and has_div_hist):
-            return False
-        else:
-            raise Exception("Dividend Share and Div History does not match.")
-                    
 
 
 

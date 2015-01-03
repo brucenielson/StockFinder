@@ -36,7 +36,7 @@ p18
 I0
 sS'n_statements'
 p19
-I204
+I227
 sS'n_excluded'
 p20
 I0
@@ -45,13 +45,13 @@ p21
 I0
 sS'n_missing'
 p22
-I26
+I1
 sS'n_missing_branches'
 p23
 I0
 sbssS'hash'
 p24
-S'\xf3Gw\xc4\x81A&tP\x9b\xa3\xdb\xd9\xb0%\xd0'
+S'\x88\x95\xa5\xa2\x96\xe0%h\xee\xb0\x9f%\x98\xae\xa7['
 p25
 ssS'stockdata'
 p26
@@ -74,17 +74,17 @@ I1
 sg18
 I0
 sg19
-I487
+I458
 sg20
 I0
 sg21
 I0
 sg22
-I248
+I188
 sg23
 I0
 sbssg24
-S'*\xb1I\x84\xb6\x13\xca\xce\xda\xa5\xc9\xfb\x8bY\xab\xda'
+S'=\x1e\xaf\xc5}\x01\xf9M\x19\xf8j\xdd\x0fE\x89 '
 p32
 sssS'version'
 p33

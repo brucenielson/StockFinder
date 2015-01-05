@@ -1,4 +1,24 @@
-import stockdata
+import realtimestockdata
+
+KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerShare, MarketCap, " \
+         + "PriceBook, EBITDA, PayoutRatio, OperatingCashFlow, Beta, ReturnonAssests, "\
+         + "TrailingAnnualDividendYield, ForwardAnnualDividendRate, p_5YearAverageDividentYield, "\
+         + "DividendDate, Ex_DividendDate, ForwardAnnualDividendYield, SharesShort, "\
+         + "CurrentRatio, BookValuePerShare, ProfitMargin, TotalCashPerShare, QtrlyEarningsGrowth, "\
+         + "TotalCash, Revenue, ForwardPE, DilutedEPS, OperatingMargin, SharesOutstanding, "\
+         + "TotalDebtEquity"
+
+
+QUOTE_FIELDS = "Symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
+         + "EarningsShare, PERatio, PriceSales, PEGRatio, ShortRatio, " \
+         + "BookValue, PriceBook"
+
+STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
+
+DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
+
+
+ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
 
 # Analyze data in various ways and label it. Input: data object with
 # all stocks as output by get_combined_data

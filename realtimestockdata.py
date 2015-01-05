@@ -10,7 +10,7 @@ import time
 
 __author__ = 'Bruce Nielson'
 
-KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerShare, MarketCap, " \
+ALL_KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerShare, MarketCap, " \
          + "PriceBook, EBITDA, PayoutRatio, OperatingCashFlow, Beta, ReturnonAssests, "\
          + "TrailingAnnualDividendYield, ForwardAnnualDividendRate, p_5YearAverageDividentYield, "\
          + "DividendDate, Ex_DividendDate, ForwardAnnualDividendYield, SharesShort, "\
@@ -19,16 +19,31 @@ KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerSha
          + "TotalDebtEquity"
 
 
-QUOTE_FIELDS = "Symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
-         + "EarningsShare, PERatio, PriceSales, PEGRatio, ShortRatio, " \
-         + "BookValue, PriceBook"
+ALL_QUOTE_FIELDS = "YearLow, OneyrTargetPrice, DividendShare, ChangeFromFiftydayMovingAverage, FiftydayMovingAverage, "\
+    +"SharesOwned, PercentChangeFromTwoHundreddayMovingAverage, PricePaid, DaysLow, DividendYield, Commission, "\
+    +"EPSEstimateNextQuarter, ChangeFromYearLow, ChangeFromYearHigh, EarningsShare, AverageDailyVolume, LastTradePriceOnly, "\
+    +"YearHigh, EBITDA, Change_PercentChange, AnnualizedGain, ShortRatio, LastTradeDate, PriceSales, EPSEstimateCurrentYear, "\
+    +"BookValue, Bid, AskRealtime, PreviousClose, DaysRangeRealtime, EPSEstimateNextYear, Volume, HoldingsGainPercent, "\
+    +"PercentChange, TickerTrend, Ask, ChangeRealtime, PriceEPSEstimateNextYear, HoldingsGain, Change, MarketCapitalization, "\
+    +"Name, HoldingsValue, DaysRange, AfterHoursChangeRealtime, symbol, ChangePercentRealtime, DaysValueChange, LastTradeTime, "\
+    +"StockExchange, DividendPayDate, LastTradeRealtimeWithTime, Notes, MarketCapRealtime, ExDividendDate, PERatio, "\
+    +"DaysValueChangeRealtime, ErrorIndicationreturnedforsymbolchangedinvalid, ChangeinPercent, HoldingsValueRealtime, "\
+    +"PercentChangeFromFiftydayMovingAverage, PriceBook, ChangeFromTwoHundreddayMovingAverage, DaysHigh, PercentChangeFromYearLow, "\
+    +"TradeDate, LastTradeWithTime, BidRealtime, YearRange, HighLimit, OrderBookRealtime, HoldingsGainRealtime, PEGRatio, "\
+    +"Currency, LowLimit, HoldingsGainPercentRealtime, TwoHundreddayMovingAverage, PERatioRealtime, PercebtChangeFromYearHigh, "\
+    +"Open, PriceEPSEstimateCurrentYear, MoreInfo, Symbol"
 
-STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
 
-DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
+    #"Symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
+         #+ "EarningsShare, PERatio, PriceSales, PEGRatio, ShortRatio, " \
+         #+ "BookValue, PriceBook"
+
+ALL_STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
+
+ALL_DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 
 
-ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
+ALL_FIELDS = ALL_QUOTE_FIELDS + ", " + ALL_KEY_STATS_FIELDS + ", " + ALL_STOCK_FIELDS
 
 # Order of fields in Stock List table
 ROWID = 0
@@ -71,12 +86,12 @@ def get_stock_and_dividend_history_data(symbol_list):
     # original list of symbols
     while len(remaining_symbols) > 0:
         yql = "select * from yql.query.multi where queries = \""\
-            + "SELECT "+STOCK_FIELDS+" FROM yahoo.finance.stocks WHERE symbol in ("\
+            + "SELECT "+ALL_STOCK_FIELDS+" FROM yahoo.finance.stocks WHERE symbol in ("\
             + '\'' \
             + '\',\''.join(remaining_symbols) \
             + '\'' \
             + "); " \
-            + "SELECT "+DIVIDEND_HISTORY_FIELDS+" FROM yahoo.finance.dividendhistory WHERE "\
+            + "SELECT "+ALL_DIVIDEND_HISTORY_FIELDS+" FROM yahoo.finance.dividendhistory WHERE "\
              + "startDate = \'\' and endDate = \'\' and symbol in (" \
             + '\'' \
             + '\',\''.join(remaining_symbols) \
@@ -112,7 +127,7 @@ def get_stock_data(symbol_list):
 
     def do_work(symbol_list):
         result = {}
-        yql = "select "+ STOCK_FIELDS +" from yahoo.finance.stocks where symbol in (" \
+        yql = "select "+ ALL_STOCK_FIELDS +" from yahoo.finance.stocks where symbol in (" \
                         + '\'' \
                         + '\',\''.join(symbol_list) \
                         + '\'' \
@@ -120,7 +135,7 @@ def get_stock_data(symbol_list):
 
         result = execute_yql(yql)
 
-        return standardize_data(result, STOCK_FIELDS)
+        return standardize_data(result, ALL_STOCK_FIELDS)
 
     symbol_list = __process_symbol_list(symbol_list)
     return __safe_get_data(do_work, symbol_list)
@@ -145,7 +160,7 @@ def get_dividend_history_data(symbol_list):
     # Since YQL fails a lot, do a loop until you get everything in the whole
     # original list of symbols
     while len(remaining_symbols) > 0 and result != None:
-        yql = "select "+ DIVIDEND_HISTORY_FIELDS +" from yahoo.finance.dividendhistory where"\
+        yql = "select "+ ALL_DIVIDEND_HISTORY_FIELDS +" from yahoo.finance.dividendhistory where"\
                         + " startDate = \"\" and endDate = \"\""\
                         + " and symbol in (" \
                         +'\'' \
@@ -257,7 +272,7 @@ def standardize_data(data, fields):
 # i.e. "N/A" = 0.00 for a dividend, etc. This function takes only dividend history data.
 def standardize_dividend_history_data(div_history_data):
 
-    div_hist_fields = DIVIDEND_HISTORY_FIELDS.split(", ")
+    div_hist_fields = ALL_DIVIDEND_HISTORY_FIELDS.split(", ")
 
     for symbol in div_history_data:
         dividend_list =  div_history_data[symbol]['DividendHistory']
@@ -390,8 +405,7 @@ def execute_yql(yql):
 
         return data_dict
 
-
-
+    #print yql
     url = "http://query.yahooapis.com/v1/public/yql?q=" \
             + urllib2.quote(yql) \
             + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
@@ -613,7 +627,7 @@ def get_quote_data(symbol_list):
     def do_work(symbol_list):
 
         result = {}
-        yql = "select "+ QUOTE_FIELDS +" from yahoo.finance.quotes where symbol in (" \
+        yql = "select "+ ALL_QUOTE_FIELDS +" from yahoo.finance.quotes where symbol in (" \
                         + '\'' \
                         + '\',\''.join(symbol_list) \
                         + '\'' \
@@ -629,7 +643,7 @@ def get_quote_data(symbol_list):
             else:
                 result[row]['HasKeyStats'] = True
 
-        return standardize_data(result, QUOTE_FIELDS)
+        return standardize_data(result, ALL_QUOTE_FIELDS)
 
     # By wrapping this in __safe_get_data it will repeat the YQL query until
     # every symbol has been loaded. This is because YQL is unreliable on
@@ -668,7 +682,7 @@ def get_key_stats_data(symbol_list):
 
     def do_work(symbol_list):
         result = {}
-        yql = "select "+ KEY_STATS_FIELDS +" from yahoo.finance.keystats where symbol in (" \
+        yql = "select "+ ALL_KEY_STATS_FIELDS +" from yahoo.finance.keystats where symbol in (" \
                         + '\'' \
                         + '\',\''.join(symbol_list) \
                         + '\'' \
@@ -693,7 +707,7 @@ def get_key_stats_data(symbol_list):
             #print str(symbol) + " - " + str(len(final[symbol]))
 
 
-        return standardize_data(result, KEY_STATS_FIELDS)
+        return standardize_data(result, ALL_KEY_STATS_FIELDS)
 
     symbol_list = __process_symbol_list(symbol_list)
     return __safe_get_data(do_work, symbol_list)

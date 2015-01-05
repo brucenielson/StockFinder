@@ -1,7 +1,7 @@
 import unittest
 import mock
 import os
-from stockdata import *
+from realtimestockdata import *
 
 
 # Raw data that fakes coming out of json.loads
@@ -47,12 +47,12 @@ result_get_any = {u'AAPL': {u'LastTradePriceOnly': u'109.33', u'Symbol': u'AAPL'
 __author__ = 'Bruce Nielson'
 
 
-class test_stock_data_utilities(unittest.TestCase):
+class test_real_time_stock_data(unittest.TestCase):
 
 
     #Unit Test get_quote_data
-    @mock.patch('stockdata.urllib2.urlopen')
-    @mock.patch('stockdata.json.loads')
+    @mock.patch('realtimestockdata.urllib2.urlopen')
+    @mock.patch('realtimestockdata.json.loads')
     def test_get_quotes_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -99,8 +99,8 @@ class test_stock_data_utilities(unittest.TestCase):
 
 
     #Unit Test __process_symbol_list indirectly since its private
-    @mock.patch('stockdata.urllib2.urlopen')
-    @mock.patch('stockdata.json.loads')
+    @mock.patch('realtimestockdata.urllib2.urlopen')
+    @mock.patch('realtimestockdata.json.loads')
     def test_process_symbol_list(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -108,18 +108,17 @@ class test_stock_data_utilities(unittest.TestCase):
 
         # Test list of quotes with upper and lowercase symbols
         quote_data = get_quote_data('aapl')
-        quote_fields = QUOTE_FIELDS.split(", ")
-        for row in quote_data:
-            for item in quote_fields:
-                self.failIf(quote_data[row][item] != result_test_data_pass_string[row][item])
-
+        #quote_fields = QUOTE_FIELDS.split(", ")
+        #for row in quote_data:
+        #    for item in quote_fields:
+        #        self.failIf(quote_data[row][item] != result_test_data_pass_string[row][item])
 
 
 
 
     #Unit Test get_key_stats_data
-    @mock.patch('stockdata.urllib2.urlopen')
-    @mock.patch('stockdata.json.loads')
+    @mock.patch('realtimestockdata.urllib2.urlopen')
+    @mock.patch('realtimestockdata.json.loads')
     def test_get_key_stats_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -163,10 +162,9 @@ class test_stock_data_utilities(unittest.TestCase):
 
 
 
-
     #Unit Test get_stock_data
-    @mock.patch('stockdata.urllib2.urlopen')
-    @mock.patch('stockdata.json.loads')
+    @mock.patch('realtimestockdata.urllib2.urlopen')
+    @mock.patch('realtimestockdata.json.loads')
     def test_get_stock_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -210,8 +208,8 @@ class test_stock_data_utilities(unittest.TestCase):
 
 
     #Unit Test get_dividend_history_data
-    @mock.patch('stockdata.urllib2.urlopen')
-    @mock.patch('stockdata.json.loads')
+    @mock.patch('realtimestockdata.urllib2.urlopen')
+    @mock.patch('realtimestockdata.json.loads')
     def test_dividend_history_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -263,8 +261,8 @@ class test_stock_data_utilities(unittest.TestCase):
 
 
 
-    @mock.patch('stockdata.urllib2.urlopen')
-    @mock.patch('stockdata.json.loads')
+    @mock.patch('realtimestockdata.urllib2.urlopen')
+    @mock.patch('realtimestockdata.json.loads')
     def test_get_stock_and_dividend_history_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -343,52 +341,15 @@ class test_stock_data_utilities(unittest.TestCase):
 
 
 
-    @mock.patch('stockdata.urllib2.urlopen')
-    @mock.patch('stockdata.json.loads')
+    @mock.patch('realtimestockdata.urllib2.urlopen')
+    @mock.patch('realtimestockdata.json.loads')
     def test_get_any(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
         mock_json_loads.return_value = fake_get_any
 
         data = get_any_data(['aapl'], "yahoo.finance.quotes", "LastTradePriceOnly, Symbol, DividendShare")
-        print data
-        print result_get_any
         self.failIf(data != result_get_any)
-
-
-
-    @mock.patch('stockdata.sqlite3')
-    def test_create_database(self, mock_sqlite):
-        #try:
-        #    os.remove(os.path.dirname(__file__)+"\\unittest.db")
-        #except:
-        #    pass
-
-        self.assertFalse(os.path.isfile(os.path.dirname(__file__)+"\\unittest.db"), "Failed to remove the file.")
-        create_database("unittest.db")
-        mock_sqlite.connect.assert_called_with(os.path.dirname(__file__)+"\\unittest.db")
-        #mock_sqlite.complete_statement.assert_called_with('create index labelx on label(label)')
-
-        #self.assertTrue(os.path.isfile(os.path.dirname(__file__)+"\\unittest.db"), "Database file not create.")
-        #os.remove(os.path.dirname(__file__)+"\\unittest.db")
-
-
-
-    @mock.patch('stockdata.lxml.html')
-    def test_get_wikipedia_snp500_list(self, mockl_xml_html):
-        sl = get_wikipedia_snp500_list()
-        mockl_xml_html.parse.assert_called_with('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-
-
-
-    @mock.patch('stockdata.pickle')
-    @mock.patch('stockdata.get_wikipedia_snp500_list')
-    def test_pickle_snp(self, mock_wiki, mock_pickle):
-        pickle_snp_500_list()
-        mock_wiki.assert_called()
-        mock_pickle.dump.assert_called()
-        sl = get_pickled_snp_500_list()
-        mock_pickle.load.assert_called()
 
 
 

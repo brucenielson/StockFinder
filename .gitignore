@@ -9,8 +9,6 @@ Desktop.ini
 $RECYCLE.BIN/
 
 # Don't include coverage stats and info
-.coverage
-*.coverage
 htmlcov
 
 # Windows Installer files

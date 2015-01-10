@@ -8,6 +8,10 @@ Desktop.ini
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
 
+# Don't include coverage stats and info
+.coverage
+htmlcov
+
 # Windows Installer files
 *.cab
 *.msi

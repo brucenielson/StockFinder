@@ -104,7 +104,7 @@ def __process_symbol_list(symbol_list):
 
         #symbol_list = [symbol_list]
     if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
+        raise Exception("symbol_list must be a list") # pragma: no cover
 
     # make list all upper case
     symbol_list = [symbol.upper() for symbol in symbol_list]
@@ -190,7 +190,7 @@ def standardize_data(data, fields):
                 else:
                     try:
                         data[row][item] = __convert_to_float(value)
-                    except ValueError:
+                    except ValueError: # pragma: no cover
                         raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
 
 
@@ -226,7 +226,7 @@ def standardize_data(data, fields):
                     else:
                         try:
                             data[row][item] = __convert_to_date(data[row][item])
-                        except ValueError:
+                        except ValueError: # pragma: no cover
                             raise ValueError("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
             # if item is a percentage
@@ -242,7 +242,7 @@ def standardize_data(data, fields):
                 else:
                     try:
                         data[row][item] = float(value.strip('%').replace(",","")) / 100.0
-                    except ValueError:
+                    except ValueError: # pragma: no cover
                         raise ValueError("For "+row+", "+item+": "+value+" is not a valid value.")
 
     return data
@@ -271,7 +271,7 @@ def standardize_dividend_history_data(div_history_data, fields):
                     else:
                         try:
                             div[field] = __convert_to_float(div[field])
-                        except ValueError:
+                        except ValueError: # pragma: no cover
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" is not a valid value.")
 
                 # if item is a date
@@ -281,7 +281,7 @@ def standardize_dividend_history_data(div_history_data, fields):
                     else:
                         try:
                             div[field] = __convert_to_date(div[field])
-                        except ValueError:
+                        except ValueError: # pragma: no cover
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
     return div_history_data
@@ -325,7 +325,7 @@ def __convert_to_date(value):
         except ValueError:
             try:
                 return datetime.datetime.strptime(value,"%b %d, %Y")
-            except ValueError:
+            except ValueError: # pragma: no cover
                 raise ValueError()
 
 
@@ -383,7 +383,7 @@ def execute_yql(yql):
                 # Process the list of quote data
                 data_dict = format_basic_data(data)
         else:
-            raise Exception("'Quote' data is not in either quote or dividend history format.")
+            raise Exception("'Quote' data is not in either quote or dividend history format.") # pragma: no cover
 
         return data_dict
 
@@ -395,7 +395,7 @@ def execute_yql(yql):
 
     try:
         result = urllib2.urlopen(url)
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError, e: # pragma: no cover
         raise Exception("HTTP error: ", e.code, e.reason)
     except urllib2.URLError, e:
         raise Exception("Network error: ", e.reason)
@@ -404,7 +404,7 @@ def execute_yql(yql):
     if result == "mock file object":
         result = json.loads("")
     else:
-        result = json.loads(result.read())
+        result = json.loads(result.read()) # pragma: no cover
     #print result
 
     json_data = result['query']['results']
@@ -501,7 +501,7 @@ def format_dividend_history_data(data):
         try:
             data = data['quote']
         except:
-            raise Exception("Dividend History data in wrong format.")
+            raise Exception("Dividend History data in wrong format.") # pragma: no cover
 
 
     if type(data) == type(dict()):
@@ -753,9 +753,7 @@ def get_combined_data(symbol_list):
 # include a symbol column
 def get_any_data(symbol_list, table, fields="*"):
 
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
-
+    symbol_list = __process_symbol_list(symbol_list)
     
     yql = "select "+ fields +" from "+table+" where symbol in (" \
                     + '\'' \
@@ -770,7 +768,7 @@ def get_any_data(symbol_list, table, fields="*"):
 
 
 
-def create_data():
+def create_data(): # pragma: no cover
     import os
     import pickle
 

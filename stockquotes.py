@@ -38,7 +38,7 @@ ALL_QUOTE_FIELDS = "YearLow, OneyrTargetPrice, DividendShare, ChangeFromFiftyday
          #+ "EarningsShare, PERatio, PriceSales, PEGRatio, ShortRatio, " \
          #+ "BookValue, PriceBook"
 
-ALL_STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
+ALL_STOCK_FIELDS = "Sector, end, CompanyName, symbol, start, FullTimeEmployees, Industry" #"symbol, Industry, Sector, start, FullTimeEmployees"
 
 ALL_DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 
@@ -405,6 +405,7 @@ def execute_yql(yql):
 
         return data_dict
 
+
     #print yql
     url = "http://query.yahooapis.com/v1/public/yql?q=" \
             + urllib2.quote(yql) \
@@ -665,7 +666,6 @@ def __safe_get_data(function, symbol_list):
     # make a copy of the list so that we can re-run yql until we get the full list
     remaining_symbols = symbol_list[:]
     remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
-    result = {}
     final = {}
 
     while len(remaining_symbols) > 0:
@@ -783,6 +783,144 @@ def get_any_data(symbol_list, table, fields="*"):
 
 
 
+
+
+def create_test_data():
+    import os
+    import pickle
+
+    def pickle_test_data(data):
+        os.remove(os.path.dirname(__file__)+"\\testdata.txt")
+        f = open(os.path.dirname(__file__)+"\\"+'testdata.txt', 'w')
+        pickle.dump(data, f)
+
+
+    def quote_yql(symbol_list):
+        symbol_list = __process_symbol_list(symbol_list)
+        yql = "select "+ ALL_QUOTE_FIELDS +" from yahoo.finance.quotes where symbol in (" \
+                + '\'' \
+                + '\',\''.join(symbol_list) \
+                + '\'' \
+                + ")"
+        return yql
+
+    def stock_yql(symbol_list):
+        symbol_list = __process_symbol_list(symbol_list)
+        yql = "select "+ ALL_STOCK_FIELDS +" from yahoo.finance.stocks where symbol in (" \
+            + '\'' \
+            + '\',\''.join(symbol_list) \
+            + '\'' \
+            + ")"
+        return yql
+
+    def key_stat_yql(symbol_list):
+        symbol_list = __process_symbol_list(symbol_list)
+        yql = "select "+ ALL_KEY_STATS_FIELDS +" from yahoo.finance.keystats where symbol in (" \
+            + '\'' \
+            + '\',\''.join(symbol_list) \
+            + '\'' \
+            + ")"
+        return yql
+
+    def div_hist_yql(symbol_list):
+        symbol_list = __process_symbol_list(symbol_list)
+        yql = "select "+ ALL_DIVIDEND_HISTORY_FIELDS +" from yahoo.finance.dividendhistory where"\
+            + " startDate = \"\" and endDate = \"\""\
+            + " and symbol in (" \
+            +'\'' \
+            + '\',\''.join(symbol_list) \
+            + '\'' \
+            + ")"
+        return yql
+
+    def stock_div_yql(symbol_list):
+        symbol_list = __process_symbol_list(symbol_list)
+        yql = "select * from yql.query.multi where queries = \""\
+            + "SELECT "+ALL_STOCK_FIELDS+" FROM yahoo.finance.stocks WHERE symbol in ("\
+            + '\'' \
+            + '\',\''.join(symbol_list) \
+            + '\'' \
+            + "); " \
+            + "SELECT "+ALL_DIVIDEND_HISTORY_FIELDS+" FROM yahoo.finance.dividendhistory WHERE "\
+             + "startDate = \'\' and endDate = \'\' and symbol in (" \
+            + '\'' \
+            + '\',\''.join(symbol_list) \
+            + '\'' \
+            + ")\""
+        return yql
+
+
+    def create_fake_data(yql):
+        url = "http://query.yahooapis.com/v1/public/yql?q=" \
+            + urllib2.quote(yql) \
+            + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
+
+        try:
+            result = urllib2.urlopen(url)
+        except urllib2.HTTPError, e:
+            raise Exception("HTTP error: ", e.code, e.reason)
+        except urllib2.URLError, e:
+            raise Exception("Network error: ", e.reason)
+
+        return json.loads(result.read())
+
+
+    data = {}
+
+    print "Creating symbol list test data:"
+    sl = ['aapl', 'T', 'MSFT', 'GOOG']
+    data['q1r'] = get_quote_data(sl)
+    data['q1t'] = create_fake_data(quote_yql(sl))
+    print "completed quote..."
+
+
+    data['ks1r'] = get_key_stats_data(sl)
+    data['ks1t'] = create_fake_data(key_stat_yql(sl))
+    print "completed key stats..."
+    data['s1r'] = get_stock_data(sl)
+    data['s1t'] = create_fake_data(stock_yql(sl))
+    print data['s1r']
+    print data['s1t']
+    print "completed stocks..."
+
+    sl = ['aapl', 'T', 'MSFT']
+    data['div1r'] = get_dividend_history_data(['aapl', 'T', 'MSFT'])
+    data['div1t'] = create_fake_data(div_hist_yql(sl))
+    print "completed dividend history..."
+    data['sd1r'] = get_stock_and_dividend_history_data(['aapl', 'T', 'MSFT'])
+    data['sd1t'] = create_fake_data(stock_div_yql(sl))
+    print "completed stock and dividend history..."
+
+
+    print "Creating single symbol test data:"
+    sl = ['aapl']
+    data['q2r'] = get_quote_data(sl)
+    data['q2t'] = create_fake_data(quote_yql(sl))
+    print "completed quote..."
+    data['ks2r'] = get_key_stats_data(sl)
+    data['ks2t'] = create_fake_data(key_stat_yql(sl))
+    print "completed key stat..."
+    data['s2r'] = get_stock_data(sl)
+    data['s2t'] = create_fake_data(stock_yql(sl))
+    print "completed stock..."
+    data['sd2r'] = get_stock_and_dividend_history_data(sl)
+    data['sd2t'] = create_fake_data(stock_div_yql(sl))
+    print "completed stock and dividend history..."
+    data['div3r'] = get_dividend_history_data(sl)
+    data['div3t'] = create_fake_data(div_hist_yql(sl))
+    print "completed dividend history..."
+    #data['div3t'] = get_dividend_history_data(sl)
+    #data['div3r'] = create_fake_data(quote_yql(sl))
+
+    print "Creating no dividends example:"
+    sl = ['GOOG']
+    data['div2r'] = get_dividend_history_data(sl)
+    data['div2t'] = create_fake_data(div_hist_yql(sl))
+    print "completed no dividends..."
+
+    #data['any'] = get_any_data(['aapl'], "yahoo.finance.quotes", "LastTradePriceOnly, Symbol, DividendShare")
+
+    pickle_test_data(data)
 
 
 

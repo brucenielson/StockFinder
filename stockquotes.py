@@ -770,7 +770,7 @@ def get_any_data(symbol_list, table, fields="*"):
 
 
 
-def create_test_data():
+def create_data():
     import os
     import pickle
 

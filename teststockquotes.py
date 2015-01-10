@@ -7,7 +7,7 @@ from stockquotes import *
 
 
 # Get Test Data
-def get_test_data():
+def get_data():
     import pickle
 
     f = open(os.path.dirname(__file__)+"\\"+'testdata.txt')
@@ -15,7 +15,7 @@ def get_test_data():
     f.close()
     return data
 
-data = get_test_data()
+data = get_data()
 
 
 fake_quote_data_1 = data['q1t']

@@ -751,7 +751,7 @@ def get_combined_data(symbol_list):
 
 # A generic way for me to test out tables in real time. Requires that I
 # include a symbol column
-def get_any_data(symbol_list, table, fields="*"):
+def get_any_data(symbol_list, table, fields="*"): 
 
     symbol_list = __process_symbol_list(symbol_list)
     

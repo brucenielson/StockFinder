@@ -10,6 +10,8 @@ $RECYCLE.BIN/
 
 # Don't include coverage stats and info
 htmlcov
+.coverage
+*.coverage
 
 # Windows Installer files
 *.cab

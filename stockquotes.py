@@ -73,43 +73,36 @@ def get_stock_and_dividend_history_data(symbol_list):
     retrieved in real time.
     """
 
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
-
-    # make a copy of the list so that we can re-run yql until we get the full list
-    #remaining_symbols = symbol_list[:]
-    remaining_symbols = [symbol.upper() for symbol in symbol_list]
-    result = {}
-    final = {}
-
-    # Since YQL fails a lot, do a loop until you get everything in the whole
-    # original list of symbols
-    while len(remaining_symbols) > 0:
+    def do_work(symbol_list):
         yql = "select * from yql.query.multi where queries = \""\
             + "SELECT "+ALL_STOCK_FIELDS+" FROM yahoo.finance.stocks WHERE symbol in ("\
             + '\'' \
-            + '\',\''.join(remaining_symbols) \
+            + '\',\''.join(symbol_list) \
             + '\'' \
             + "); " \
             + "SELECT "+ALL_DIVIDEND_HISTORY_FIELDS+" FROM yahoo.finance.dividendhistory WHERE "\
              + "startDate = \'\' and endDate = \'\' and symbol in (" \
             + '\'' \
-            + '\',\''.join(remaining_symbols) \
+            + '\',\''.join(symbol_list) \
             + '\'' \
             + ")\""
 
         #yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
         result = execute_yql(yql)
-        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
-        final = dict(final.items() + result.items())
+        result = standardize_dividend_history_data(result, ALL_DIVIDEND_HISTORY_FIELDS)
+        result = standardize_data(result, ALL_STOCK_FIELDS)
+        return result
 
-    return final #standardize_data(final)
-    #TODO: Fix this
+
+    symbol_list = __process_symbol_list(symbol_list)
+    return __safe_get_data(do_work, symbol_list)
 
 
 def __process_symbol_list(symbol_list):
     if type(symbol_list) == type(str()):
-        symbol_list = [symbol_list]
+        symbol_list = [symbol for symbol in symbol_list.split(", ")]
+
+        #symbol_list = [symbol_list]
     if type(symbol_list) != type(list()):
         raise Exception("symbol_list must be a list")
 
@@ -146,36 +139,25 @@ def get_stock_data(symbol_list):
 # standardized format.
 def get_dividend_history_data(symbol_list):
 
-    if type(symbol_list) != type(list()):
-        raise Exception("symbol_list must be a list")
-
-    today = datetime.datetime.now()
-
-    # make a copy of the list so that we can re-run yql until we get the full list
-    remaining_symbols = symbol_list[:]
-    remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
-    result = {}
-    final = {}
-
-    # Since YQL fails a lot, do a loop until you get everything in the whole
-    # original list of symbols
-    while len(remaining_symbols) > 0 and result != None:
+    def do_work(symbol_list):
+        result = {}
         yql = "select "+ ALL_DIVIDEND_HISTORY_FIELDS +" from yahoo.finance.dividendhistory where"\
                         + " startDate = \"\" and endDate = \"\""\
                         + " and symbol in (" \
                         +'\'' \
-                        + '\',\''.join(remaining_symbols) \
+                        + '\',\''.join(symbol_list) \
                         + '\'' \
                         + ")"
 
         # yql = yql % (today.year-10, today.month, today.day, today.year, today.month, today.day)
         result = execute_yql(yql)
+        return standardize_dividend_history_data(result, ALL_DIVIDEND_HISTORY_FIELDS)
 
-        if result != None:
-            remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
-            final = dict(final.items() + result.items())
 
-    return standardize_dividend_history_data(final)
+    symbol_list = __process_symbol_list(symbol_list)
+    return __safe_get_data(do_work, symbol_list)
+
+
 
 
 
@@ -270,9 +252,9 @@ def standardize_data(data, fields):
 
 # Fix output so that there isn't such inconsistency in the data.
 # i.e. "N/A" = 0.00 for a dividend, etc. This function takes only dividend history data.
-def standardize_dividend_history_data(div_history_data):
+def standardize_dividend_history_data(div_history_data, fields):
 
-    div_hist_fields = ALL_DIVIDEND_HISTORY_FIELDS.split(", ")
+    div_hist_fields = fields.split(", ")
 
     for symbol in div_history_data:
         dividend_list =  div_history_data[symbol]['DividendHistory']
@@ -429,7 +411,7 @@ def execute_yql(yql):
 
     # Return None if there is no data in the result.
     if json_data == None:
-        return None
+        return {}
 
     # If multiple rows come back, it comes back as a list inside "quote" or whatever the type is
     # {u'quote': [{u'YearLow': u'70.5071',...
@@ -670,7 +652,10 @@ def __safe_get_data(function, symbol_list):
 
     while len(remaining_symbols) > 0:
         result = function(remaining_symbols)
-        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
+        if len(result) > 0:
+            remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
+        else:
+            remaining_symbols = {}
         final = dict(final.items() + result.items())
 
     return final
@@ -879,8 +864,6 @@ def create_test_data():
     print "completed key stats..."
     data['s1r'] = get_stock_data(sl)
     data['s1t'] = create_fake_data(stock_yql(sl))
-    print data['s1r']
-    print data['s1t']
     print "completed stocks..."
 
     sl = ['aapl', 'T', 'MSFT']

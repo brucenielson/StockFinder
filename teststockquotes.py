@@ -178,9 +178,6 @@ class test_stock_quotes(unittest.TestCase):
 
 
 
-
-
-
     #Unit Test __process_symbol_list indirectly since its private
     @mock.patch('stockquotes.urllib2.urlopen')
     @mock.patch('stockquotes.json.loads')
@@ -212,6 +209,15 @@ class test_stock_quotes(unittest.TestCase):
 
         if not (success == True and result == result_quote_data_2['AAPL']):
             self.fail("Found 'aapl' instead of 'AAPL'")
+
+        # Setup mocks
+        mock_urllib2_urlopen.return_value = "mock file object"
+        mock_json_loads.return_value = fake_quote_data_1
+
+        # Test list of quotes in a string instead of a list
+        quote_data = get_quote_data("aapl, T, MSFT, GOOG")
+
+        self.failIf(quote_data != result_quote_data_1)
 
 
 

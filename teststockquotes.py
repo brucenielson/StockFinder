@@ -28,6 +28,7 @@ fake_stock_data_2 = data['s2t']
 fake_div_hist_data_1 = data['div1t']
 fake_div_hist_data_2 = data['div2t']
 fake_div_hist_data_3 = data['div3t']
+fake_div_hist_data_4 = data['div4t']
 fake_stock_and_div_1 =  data['sd1t']
 fake_stock_and_div_2 = data['sd2t']
 
@@ -45,6 +46,7 @@ result_stock_data_2 = data['s2r']
 result_div_hist_data_1 = data['div1r']
 result_div_hist_data_2 = data['div2r']
 result_div_hist_data_3 = data['div3r']
+result_div_hist_data_4 = data['div4r']
 
 result_stock_and_div_1 = data['sd1r']
 result_stock_and_div_2 = data['sd2r']
@@ -291,6 +293,12 @@ class test_stock_quotes(unittest.TestCase):
         data = get_dividend_history_data(['aapl'])
 
         self.failIf(data != result_div_hist_data_3)
+
+        # Test CNHI which has only one dividend.
+        mock_json_loads.return_value = fake_div_hist_data_4
+        data = get_dividend_history_data('cnhi')
+
+        self.failIf(data != result_div_hist_data_4)
 
 
 

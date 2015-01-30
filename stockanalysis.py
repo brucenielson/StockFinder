@@ -1,17 +1,22 @@
-import realtimestockdata
+import stockquotes
+import stockdatabase
 
-KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, RevenuePerShare, MarketCap, " \
-         + "PriceBook, EBITDA, PayoutRatio, OperatingCashFlow, Beta, ReturnonAssests, "\
+KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, MarketCap, " \
+         + "OperatingCashFlow, Beta, ReturnonAssests, "\
          + "TrailingAnnualDividendYield, ForwardAnnualDividendRate, p_5YearAverageDividentYield, "\
-         + "DividendDate, Ex_DividendDate, ForwardAnnualDividendYield, SharesShort, "\
-         + "CurrentRatio, BookValuePerShare, ProfitMargin, TotalCashPerShare, QtrlyEarningsGrowth, "\
+         + "DividendDate, Ex_DividendDate, "\
+         + "CurrentRatio, ProfitMargin, TotalCashPerShare, QtrlyEarningsGrowth, "\
          + "TotalCash, Revenue, ForwardPE, DilutedEPS, OperatingMargin, SharesOutstanding, "\
          + "TotalDebtEquity"
 
 
-QUOTE_FIELDS = "Symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
-         + "EarningsShare, PERatio, PriceSales, PEGRatio, ShortRatio, " \
-         + "BookValue, PriceBook"
+QUOTE_FIELDS = "symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
+        + "EarningsShare, PEGRatio, ShortRatio, " \
+        + "BookValue, EPSEstimateNextQuarter, EBITDA, EPSEstimateCurrentYear, EPSEstimateNextYear, " \
+        + "PriceEPSEstimateNextYear, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
+        + "MarketCapRealtime, ExDividendDate, HoldingsValueRealtime, HoldingsGainRealtime, Currency, " \
+        + "PERatioRealtime, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
+        + "PriceEPSEstimateNextYear, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
 
 STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
 
@@ -19,6 +24,17 @@ DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 
 
 ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
+
+"""
+def get_data(symbol_list):
+    quote_data = stockquotes.get_quote_data(symbol_list)
+    stats_data = stockdata.retrieve_key_stats_data(symbol_list)
+    stored_date = stockdatabase.retrieve_stock_list_from_db()
+    div_hist_data = stockdatabase.get_dividend_history_data(symbol_list)
+
+    data = combine_data(quote_data, stats_data, stored_date, div_hist_data)
+    return data
+"""
 
 # Analyze data in various ways and label it. Input: data object with
 # all stocks as output by get_combined_data

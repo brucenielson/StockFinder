@@ -33,11 +33,6 @@ ALL_QUOTE_FIELDS = "YearLow, OneyrTargetPrice, DividendShare, ChangeFromFiftyday
     +"Currency, LowLimit, HoldingsGainPercentRealtime, TwoHundreddayMovingAverage, PERatioRealtime, PercebtChangeFromYearHigh, "\
     +"Open, PriceEPSEstimateCurrentYear, MoreInfo, Symbol"
 
-
-    #"Symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
-         #+ "EarningsShare, PERatio, PriceSales, PEGRatio, ShortRatio, " \
-         #+ "BookValue, PriceBook"
-
 ALL_STOCK_FIELDS = "Sector, end, CompanyName, symbol, start, FullTimeEmployees, Industry" #"symbol, Industry, Sector, start, FullTimeEmployees"
 
 ALL_DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
@@ -155,10 +150,8 @@ def get_dividend_history_data(symbol_list):
 
 
     symbol_list = __process_symbol_list(symbol_list)
-    return __safe_get_data(do_work, symbol_list)
-
-
-
+    result = __safe_get_data(do_work, symbol_list)
+    return result
 
 
 
@@ -387,7 +380,6 @@ def execute_yql(yql):
 
         return data_dict
 
-
     #print yql
     url = "http://query.yahooapis.com/v1/public/yql?q=" \
             + urllib2.quote(yql) \
@@ -507,6 +499,7 @@ def format_dividend_history_data(data):
     if type(data) == type(dict()):
         # This is a single dividend history row, so it's not in a list
         symbol = data['Symbol'].upper()
+        data_dict[symbol] = {}
         data_dict[symbol]['DividendHistory'] = []
         data_dict[symbol]['DividendHistory'].append(data)
 
@@ -751,7 +744,7 @@ def get_combined_data(symbol_list):
 
 # A generic way for me to test out tables in real time. Requires that I
 # include a symbol column
-def get_any_data(symbol_list, table, fields="*"): 
+def get_any_data(symbol_list, table, fields="*"):
 
     symbol_list = __process_symbol_list(symbol_list)
     
@@ -889,6 +882,8 @@ def create_data(): # pragma: no cover
     print "completed stock and dividend history..."
     data['div3r'] = get_dividend_history_data(sl)
     data['div3t'] = create_fake_data(div_hist_yql(sl))
+    data['div4r'] = get_dividend_history_data('cnhi')
+    data['div4t'] = create_fake_data(div_hist_yql('cnhi'))
     print "completed dividend history..."
     #data['div3t'] = get_dividend_history_data(sl)
     #data['div3r'] = create_fake_data(quote_yql(sl))

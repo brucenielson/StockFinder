@@ -22,6 +22,9 @@ htmlcov
 # Python binaries
 *.pyc
 
+# Excel files
+*.xls
+
 
 # =========================
 # Operating System Files

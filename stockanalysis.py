@@ -1,22 +1,20 @@
 import stockquotes
 import stockdatabase
 
-KEY_STATS_FIELDS = "symbol, TotalDebt, ReturnOnEquity, TrailingPE, MarketCap, " \
-         + "OperatingCashFlow, Beta, ReturnonAssests, "\
-         + "TrailingAnnualDividendYield, ForwardAnnualDividendRate, p_5YearAverageDividentYield, "\
-         + "DividendDate, Ex_DividendDate, "\
-         + "CurrentRatio, ProfitMargin, TotalCashPerShare, QtrlyEarningsGrowth, "\
-         + "TotalCash, Revenue, ForwardPE, DilutedEPS, OperatingMargin, SharesOutstanding, "\
+KEY_STATS_FIELDS = "symbol, TotalDebt, MarketCap, " \
+         + "OperatingCashFlow, Beta, "\
+         + "DividendDate, Ex_DividendDate, ForwardAnnualDividendRate, "\
+         + "TotalCashPerShare, QtrlyEarningsGrowth, "\
+         + "TotalCash, Revenue, ForwardPE, SharesOutstanding, "\
          + "TotalDebtEquity"
 
 
 QUOTE_FIELDS = "symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
-        + "EarningsShare, PEGRatio, ShortRatio, " \
+        + "EarningsShare, " \
         + "BookValue, EPSEstimateNextQuarter, EBITDA, EPSEstimateCurrentYear, EPSEstimateNextYear, " \
         + "PriceEPSEstimateNextYear, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
-        + "MarketCapRealtime, ExDividendDate, HoldingsValueRealtime, HoldingsGainRealtime, Currency, " \
-        + "PERatioRealtime, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
-        + "PriceEPSEstimateNextYear, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
+        + "ExDividendDate, Currency"
+
 
 STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
 

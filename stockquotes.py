@@ -31,7 +31,7 @@ ALL_QUOTE_FIELDS = "YearLow, OneyrTargetPrice, DividendShare, ChangeFromFiftyday
     +"PercentChangeFromFiftydayMovingAverage, PriceBook, ChangeFromTwoHundreddayMovingAverage, DaysHigh, PercentChangeFromYearLow, "\
     +"TradeDate, LastTradeWithTime, BidRealtime, YearRange, HighLimit, OrderBookRealtime, HoldingsGainRealtime, PEGRatio, "\
     +"Currency, LowLimit, HoldingsGainPercentRealtime, TwoHundreddayMovingAverage, PERatioRealtime, PercebtChangeFromYearHigh, "\
-    +"Open, PriceEPSEstimateCurrentYear, MoreInfo, Symbol"
+    +"Open, PriceEPSEstimateCurrentYear, MoreInfo"
 
 ALL_STOCK_FIELDS = "Sector, end, CompanyName, symbol, start, FullTimeEmployees, Industry" #"symbol, Industry, Sector, start, FullTimeEmployees"
 
@@ -190,7 +190,7 @@ def standardize_data(data, fields):
                 value = data[row][item]
                 value = str(value).replace(",","")
 
-                """
+
                 if value == "N/A" or value == None or value == "None":
                     data[row][item] = 0.00
                 elif type(value) == type(float):
@@ -205,7 +205,7 @@ def standardize_data(data, fields):
                     data[row][item] = float(value[:len(value)-1])*1000000000000.00
                 else:
                     raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
-                """
+
 
             # if item is a date
             elif item in ['Ex_DividendDate', 'start', 'DividendDate']:

@@ -25,6 +25,7 @@ htmlcov
 # Excel files
 *.xls
 .idea
+spreadsheets
 
 # =========================
 # Operating System Files

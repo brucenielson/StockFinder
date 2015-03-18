@@ -1,6 +1,6 @@
 import stockquotes
 import xlwt
-import datetime
+import os
 
 def create_stock_worksheet(stock_symbol):
 
@@ -134,5 +134,5 @@ def create_stock_worksheet(stock_symbol):
         i += 1
 
     # Create Excel workbook
-    stock_book.save(stock_symbol+".xls")
+    stock_book.save(os.path.dirname(__file__)+"\\spreadsheets\\"+stock_symbol+".xls")
 

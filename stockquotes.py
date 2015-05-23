@@ -259,7 +259,7 @@ def standardize_dividend_history_data(div_history_data, fields):
 
                 #if item is dollar, integer or decimal
                 if field in ['Dividends']:
-                    if type(field) == type(float()):
+                    if type(div[field]) == type(float()):
                         pass
                     else:
                         try:
@@ -267,15 +267,23 @@ def standardize_dividend_history_data(div_history_data, fields):
                         except ValueError: # pragma: no cover
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" is not a valid value.")
 
+
                 # if item is a date
                 if field in ['Date']:
-                    if type(field) == type(datetime.datetime):
+                    if type(div[field]) == type(datetime.datetime):
                         pass
                     else:
                         try:
                             div[field] = __convert_to_date(div[field])
                         except ValueError: # pragma: no cover
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD.")
+
+    div_list = []
+    for symbol in div_history_data:
+        for div in div_history_data[symbol]['DividendHistory']:
+            if div['Dividends'] != 0.0:
+                div_list.append(div)
+        div_history_data[symbol]['DividendHistory'] = div_list
 
     return div_history_data
 

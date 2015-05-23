@@ -1,5 +1,6 @@
 import stockquotes
 import stockdatabase
+import datetime
 
 KEY_STATS_FIELDS = "symbol, TotalDebt, MarketCap, " \
          + "OperatingCashFlow, Beta, "\
@@ -23,6 +24,8 @@ DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 
 ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
 
+
+
 """
 def get_data(symbol_list):
     quote_data = stockquotes.get_quote_data(symbol_list)
@@ -33,7 +36,6 @@ def get_data(symbol_list):
     data = combine_data(quote_data, stats_data, stored_date, div_hist_data)
     return data
 """
-
 # Analyze data in various ways and label it. Input: data object with
 # all stocks as output by get_combined_data
 def analyze_data(data):
@@ -50,9 +52,19 @@ def analyze_data(data):
 
 
 
+
+
+# Does this stock have divident rows?
+def is_dividend_stock(stock_data_row):
+    if (type(stock_data_row) != dict) or 'Symbol' not in stock_data_row:
+        raise Exception("Parameter 'stock_data' must be a dictionary of data for a single stock")
+    return ('DividendHistory' in stock_data_row)
+
+
+
 # Pass this function a single row of standardized format stock data (i.e. that which comes out of
 # get_combined_data() and it will determine if this is a dividend stock or not
-def is_dividend_stock(stock_data_row):
+def has_consistent_divendend_stock_data(stock_data_row):
     if (type(stock_data_row) != dict) or 'Symbol' not in stock_data_row:
         raise Exception("Parameter 'stock_data' must be a dictionary of data for a single stock")
 

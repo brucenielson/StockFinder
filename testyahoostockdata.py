@@ -2,6 +2,7 @@ import unittest
 import mock
 import os
 from yahoostockdata import *
+import yahoostockdata
 
 
 
@@ -62,7 +63,7 @@ __author__ = 'Bruce Nielson'
 
 
 
-class test_stock_quotes(unittest.TestCase):
+class test_yahoo_stock_data(unittest.TestCase):
 
     #Unit Test get_quote_data
     @mock.patch('yahoostockdata.urllib2.urlopen')
@@ -151,50 +152,13 @@ class test_stock_quotes(unittest.TestCase):
 
         self.failIf(quote_data != result_quote_data_1)
 
-
-
-
-    #Unit Test get_key_stats_data
-    @mock.patch('yahoostockdata.urllib2.urlopen')
-    @mock.patch('yahoostockdata.json.loads')
-    def test_get_key_stats_data(self, mock_json_loads, mock_urllib2_urlopen):
-        # Setup mocks
-        mock_urllib2_urlopen.return_value = "mock file object"
-        mock_json_loads.return_value = fake_key_stats_data_1
-
-        # Test list of quotes with upper and lowercase symbols
-        data = get_key_stats_data(['aapl', 'T', 'MSFT', 'GOOG'])
-
-        self.failIf(data != result_key_stats_data_1)
-
-        # Test WMT, which shouldn't be there
-        found = True
-        try:
-            row = data['WMT']
-        except Exception, error:
-            found = False
-        self.failIf(found == True)
-
-
-        # Test trying to get a field that shouldn't be there.
-        found = True
-        try:
-            price = data['AAPL']['Industry']
-        except Exception, error:
-            found = False
-        self.failIf(found == True)
-
-
-        # Setup mocks
-        mock_urllib2_urlopen.return_value = "mock file object"
-        mock_json_loads.return_value = fake_key_stats_data_2
-
-        # Test list of quotes with upper and lowercase symbols
-        data = get_key_stats_data(['aapl'])
-
-        self.failIf(data != result_key_stats_data_2)
-
-
+        # straight tests
+        result = yahoostockdata._process_symbol_list(["aapl, T, MSFT, goog"])
+        correct = ["AAPL, T, MSFT, GOOG"]
+        self.failIf(result != correct)
+        result = yahoostockdata._process_symbol_list("aapl")
+        correct = ["AAPL"]
+        self.failIf(result != correct)
 
 
     #Unit Test get_stock_data
@@ -236,21 +200,6 @@ class test_stock_quotes(unittest.TestCase):
         data = get_stock_data(['aapl'])
 
         self.failIf(data != result_stock_data_2)
-
-
-
-
-    @mock.patch('yahoostockdata.urllib2.urlopen')
-    @mock.patch('yahoostockdata.json.loads')
-    def test_get_any(self, mock_json_loads, mock_urllib2_urlopen):
-        # Setup mocks
-        mock_urllib2_urlopen.return_value = "mock file object"
-        mock_json_loads.return_value = fake_get_any
-
-        data = get_any_data(['aapl'], "yahoo.finance.quotes", "LastTradePriceOnly, Symbol, DividendShare")
-        self.failIf(data != result_get_any)
-
-
 
 
 
@@ -299,62 +248,6 @@ class test_stock_quotes(unittest.TestCase):
         data = get_dividend_history_data('cnhi')
 
         self.failIf(data != result_div_hist_data_4)
-
-
-
-    @mock.patch('yahoostockdata.urllib2.urlopen')
-    @mock.patch('yahoostockdata.json.loads')
-    def test_get_stock_and_dividend_history_data(self, mock_json_loads, mock_urllib2_urlopen):
-        # Setup mocks
-        mock_urllib2_urlopen.return_value = "mock file object"
-        mock_json_loads.return_value = fake_stock_and_div_1
-        # Test list of quotes with upper and lowercase symbols
-        data = get_stock_and_dividend_history_data(['aapl', 'T', 'MSFT'])
-
-        self.failIf(data != result_stock_and_div_1)
-
-
-        # Test list of quotes with upper and lowercase symbols
-        #data = get_stock_and_dividend_history_data(['aapl', 'T', 'MSFT', 'GOOG'])
-
-        # Compare to stock fields
-        fields = ALL_STOCK_FIELDS.split(", ")
-
-        for row in data:
-            for item in fields:
-                self.failIf(data[row][item] != result_stock_and_div_1[row][item])
-
-        # Test WMT, which shouldn't be there
-        found = True
-        try:
-            row = data['WMT']
-        except Exception, error:
-            found = False
-        self.failIf(found == True)
-
-
-        # Test GOOG which has no dividends. This mimics safe_get_data() and also tests what happens when there are no dividends
-        mock_json_loads.return_value = fake_div_hist_data_2
-        data = get_dividend_history_data(['GOOG'])
-        self.failIf(data != {})
-
-        mock_json_loads.return_value = fake_stock_and_div_2
-        # Test list of quotes with upper and lowercase symbols
-        data = get_stock_and_dividend_history_data(['aapl'])
-
-        self.failIf(data != result_stock_and_div_2)
-
-
-        # Test list of quotes with upper and lowercase symbols
-        #data = get_stock_and_dividend_history_data(['aapl', 'T', 'MSFT', 'GOOG'])
-
-        # Compare to stock fields
-        fields = ALL_STOCK_FIELDS.split(", ")
-
-        for row in data:
-            for item in fields:
-                self.failIf(data[row][item] != result_stock_and_div_2[row][item])
-
 
 
 

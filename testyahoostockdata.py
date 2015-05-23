@@ -1,7 +1,7 @@
 import unittest
 import mock
 import os
-from stockquotes import *
+from yahoostockdata import *
 
 
 
@@ -65,8 +65,8 @@ __author__ = 'Bruce Nielson'
 class test_stock_quotes(unittest.TestCase):
 
     #Unit Test get_quote_data
-    @mock.patch('stockquotes.urllib2.urlopen')
-    @mock.patch('stockquotes.json.loads')
+    @mock.patch('yahoostockdata.urllib2.urlopen')
+    @mock.patch('yahoostockdata.json.loads')
     def test_get_quotes_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -111,8 +111,8 @@ class test_stock_quotes(unittest.TestCase):
 
 
     #Unit Test __process_symbol_list indirectly since its private
-    @mock.patch('stockquotes.urllib2.urlopen')
-    @mock.patch('stockquotes.json.loads')
+    @mock.patch('yahoostockdata.urllib2.urlopen')
+    @mock.patch('yahoostockdata.json.loads')
     def test_process_symbol_list(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -155,8 +155,8 @@ class test_stock_quotes(unittest.TestCase):
 
 
     #Unit Test get_key_stats_data
-    @mock.patch('stockquotes.urllib2.urlopen')
-    @mock.patch('stockquotes.json.loads')
+    @mock.patch('yahoostockdata.urllib2.urlopen')
+    @mock.patch('yahoostockdata.json.loads')
     def test_get_key_stats_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -198,8 +198,8 @@ class test_stock_quotes(unittest.TestCase):
 
 
     #Unit Test get_stock_data
-    @mock.patch('stockquotes.urllib2.urlopen')
-    @mock.patch('stockquotes.json.loads')
+    @mock.patch('yahoostockdata.urllib2.urlopen')
+    @mock.patch('yahoostockdata.json.loads')
     def test_get_stock_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -240,8 +240,8 @@ class test_stock_quotes(unittest.TestCase):
 
 
 
-    @mock.patch('stockquotes.urllib2.urlopen')
-    @mock.patch('stockquotes.json.loads')
+    @mock.patch('yahoostockdata.urllib2.urlopen')
+    @mock.patch('yahoostockdata.json.loads')
     def test_get_any(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -256,8 +256,8 @@ class test_stock_quotes(unittest.TestCase):
 
 
     #Unit Test get_dividend_history_data
-    @mock.patch('stockquotes.urllib2.urlopen')
-    @mock.patch('stockquotes.json.loads')
+    @mock.patch('yahoostockdata.urllib2.urlopen')
+    @mock.patch('yahoostockdata.json.loads')
     def test_dividend_history_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
@@ -302,8 +302,8 @@ class test_stock_quotes(unittest.TestCase):
 
 
 
-    @mock.patch('stockquotes.urllib2.urlopen')
-    @mock.patch('stockquotes.json.loads')
+    @mock.patch('yahoostockdata.urllib2.urlopen')
+    @mock.patch('yahoostockdata.json.loads')
     def test_get_stock_and_dividend_history_data(self, mock_json_loads, mock_urllib2_urlopen):
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"

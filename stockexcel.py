@@ -1,4 +1,4 @@
-import stockquotes
+import yahoostockdata
 #import xlwt
 import xlsxwriter
 import os
@@ -7,10 +7,10 @@ import os
 def create_stock_worksheet(stock_symbol):
 
     # Get current data for stock symbol
-    quote = stockquotes.get_quote_data(stock_symbol)[stock_symbol]
-    key_stats = stockquotes.get_key_stats_data(stock_symbol)[stock_symbol]
-    stock_info = stockquotes.get_stock_data(stock_symbol)[stock_symbol]
-    stock_div_hist = stockquotes.get_dividend_history_data(stock_symbol)
+    quote = yahoostockdata.get_quote_data(stock_symbol)[stock_symbol]
+    key_stats = yahoostockdata.get_key_stats_data(stock_symbol)[stock_symbol]
+    stock_info = yahoostockdata.get_stock_data(stock_symbol)[stock_symbol]
+    stock_div_hist = yahoostockdata.get_dividend_history_data(stock_symbol)
     div_list = stock_div_hist[stock_symbol]['DividendHistory']
     current_price = quote['LastTradePriceOnly']
     year_low = quote['YearLow']

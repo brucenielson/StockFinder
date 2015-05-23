@@ -1,4 +1,4 @@
-import stockquotes
+import yahoostockdata
 import stockdatabase
 import datetime
 
@@ -28,7 +28,7 @@ ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
 
 """
 def get_data(symbol_list):
-    quote_data = stockquotes.get_quote_data(symbol_list)
+    quote_data = yahoostockdata.get_quote_data(symbol_list)
     stats_data = stockdata.retrieve_key_stats_data(symbol_list)
     stored_date = stockdatabase.retrieve_stock_list_from_db()
     div_hist_data = stockdatabase.get_dividend_history_data(symbol_list)

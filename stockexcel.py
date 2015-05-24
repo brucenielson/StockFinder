@@ -5,10 +5,11 @@ import os
 
 
 def create_stock_worksheet(stock_symbol):
+    stock_symbol = stock_symbol.upper()
 
     # Get current data for stock symbol
     quote = yahoostockdata.get_quote_data(stock_symbol)[stock_symbol]
-    key_stats = yahoostockdata.get_key_stats_data(stock_symbol)[stock_symbol]
+    #key_stats = yahoostockdata.get_key_stats_data(stock_symbol)[stock_symbol]
     stock_info = yahoostockdata.get_stock_data(stock_symbol)[stock_symbol]
     stock_div_hist = yahoostockdata.get_dividend_history_data(stock_symbol)
     div_list = stock_div_hist[stock_symbol]['DividendHistory']
@@ -52,16 +53,16 @@ def create_stock_worksheet(stock_symbol):
     # Key Stats
     quote_sheet.write(3, 0, "Key Statistics:", title_format)
     quote_sheet.write(4, 0, "Dividend:")
-    quote_sheet.write(4, 1, key_stats['ForwardAnnualDividendRate'], dollar_format)
+    #quote_sheet.write(4, 1, key_stats['ForwardAnnualDividendRate'], dollar_format)
     quote_sheet.write(4, 2, quote['DividendShare'], dollar_format)
     quote_sheet.write(5, 0, "Earnings:")
-    quote_sheet.write(5, 1, key_stats['Revenue']) #B6
+    #quote_sheet.write(5, 1, key_stats['Revenue']) #B6
     quote_sheet.write(6, 0, "# Shares:")
-    quote_sheet.write(6, 1, key_stats['SharesOutstanding']) #B7
+    #quote_sheet.write(6, 1, key_stats['SharesOutstanding']) #B7
     quote_sheet.write(7, 0, "EPS:")
     quote_sheet.write(7, 1, "=B6/B7")
     quote_sheet.write(7, 2, quote['EarningsShare'])
-    quote_sheet.write(7, 3, key_stats['ForwardAnnualDividendRate'])
+    #quote_sheet.write(7, 3, key_stats['ForwardAnnualDividendRate'])
 
 
 

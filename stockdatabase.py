@@ -2,7 +2,7 @@ import lxml.html
 import sqlite3
 import os
 import pickle
-from stockquotes import *
+from yahoostockdata import *
 import datetime
 
 __author__ = 'Bruce Nielson'

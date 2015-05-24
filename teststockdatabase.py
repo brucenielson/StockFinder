@@ -6,7 +6,6 @@ import mock
 __author__ = 'bruce'
 
 
-
 class test_stock_database(unittest.TestCase):
 
 
@@ -24,7 +23,6 @@ class test_stock_database(unittest.TestCase):
 
         #self.assertTrue(os.path.isfile(os.path.dirname(__file__)+"\\unittest.db"), "Database file not create.")
         #os.remove(os.path.dirname(__file__)+"\\unittest.db")
-
 
 
     @mock.patch('stockdatabase.lxml.html')
@@ -50,4 +48,3 @@ class test_stock_database(unittest.TestCase):
 
 if __name__ == '__main__': # pragma: no cover
     unittest.main()
-

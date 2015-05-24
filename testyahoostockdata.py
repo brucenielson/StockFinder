@@ -22,24 +22,17 @@ data = get_data()
 fake_quote_data_1 = data['q1t']
 fake_quote_data_2 = data['q2t']
 fake_test_pass_string = data['q2t']
-fake_key_stats_data_1 =  data['ks1t']
-fake_key_stats_data_2 = data['ks2t']
 fake_stock_data_1 = data['s1t']
 fake_stock_data_2 = data['s2t']
 fake_div_hist_data_1 = data['div1t']
 fake_div_hist_data_2 = data['div2t']
 fake_div_hist_data_3 = data['div3t']
 fake_div_hist_data_4 = data['div4t']
-fake_stock_and_div_1 =  data['sd1t']
-fake_stock_and_div_2 = data['sd2t']
 
 # Result data all prettied up to compare with
 result_quote_data_1 =  data['q1r']
 result_quote_data_2 = data['q2r']
 result_test_data_pass_string =  data['q2r']
-
-result_key_stats_data_1 =  data['ks1r']
-result_key_stats_data_2 = data['ks2r']
 
 result_stock_data_1 =  data['s1r']
 result_stock_data_2 = data['s2r']
@@ -48,13 +41,6 @@ result_div_hist_data_1 = data['div1r']
 result_div_hist_data_2 = data['div2r']
 result_div_hist_data_3 = data['div3r']
 result_div_hist_data_4 = data['div4r']
-
-result_stock_and_div_1 = data['sd1r']
-result_stock_and_div_2 = data['sd2r']
-
-fake_get_any = {u'query': {u'count': 1, u'lang': u'en-US', u'results': {u'quote': {u'LastTradePriceOnly': u'109.33', u'Symbol': u'AAPL', u'DividendShare': u'1.8457'}}, u'created': u'2015-01-03T21:00:20Z'}}
-result_get_any = {u'AAPL': {u'LastTradePriceOnly': u'109.33', u'Symbol': u'AAPL', u'DividendShare': u'1.8457'}}
-
 
 
 __author__ = 'Bruce Nielson'

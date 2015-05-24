@@ -643,42 +643,6 @@ def _safe_get_data(function, symbol_list):
 
 
 
-def get_key_stats_data(symbol_list):
-
-    def do_work(symbol_list):
-        result = {}
-        yql = "select "+ ALL_KEY_STATS_FIELDS +" from yahoo.finance.keystats where symbol in (" \
-                        + '\'' \
-                        + '\',\''.join(symbol_list) \
-                        + '\'' \
-                        + ")"
-
-
-        result = execute_yql(yql)
-
-        #Reformat to make it easy to get data
-        value = 0
-        for symbol in result.keys():
-            for key in result[symbol].keys():
-                if type(result[symbol][key]) == type(dict()):
-                    try:
-                        value = result[symbol][key]['content']
-                    except:
-                        value = None
-                else:
-                    value = result[symbol][key]
-
-                result[symbol][key] = value
-            #print str(symbol) + " - " + str(len(final[symbol]))
-
-
-        return standardize_data(result, ALL_KEY_STATS_FIELDS)
-
-    symbol_list = _process_symbol_list(symbol_list)
-    return _safe_get_data(do_work, symbol_list)
-
-
-
 
 
 def create_data(): # pragma: no cover
@@ -760,6 +724,30 @@ def create_data(): # pragma: no cover
     data['q1t'] = create_fake_data(quote_yql(sl))
     print "completed quote..."
 
+    data['s1r'] = get_stock_data(sl)
+    data['s1t'] = create_fake_data(stock_yql(sl))
+    print "completed stocks..."
+
+    sl = ['aapl', 'T', 'MSFT']
+    data['div1r'] = get_dividend_history_data(['aapl', 'T', 'MSFT'])
+    data['div1t'] = create_fake_data(div_hist_yql(sl))
+    print "completed dividend history..."
+
+    print "Creating single symbol test data:"
+    sl = ['aapl']
+    data['q2r'] = get_quote_data(sl)
+    data['q2t'] = create_fake_data(quote_yql(sl))
+    print "completed quote..."
+    data['s2r'] = get_stock_data(sl)
+    data['s2t'] = create_fake_data(stock_yql(sl))
+    print "completed stock..."
+    data['div3r'] = get_dividend_history_data(sl)
+    data['div3t'] = create_fake_data(div_hist_yql(sl))
+    data['div4r'] = get_dividend_history_data('cnhi')
+    data['div4t'] = create_fake_data(div_hist_yql('cnhi'))
+    print "completed dividend history..."
+    #data['div3t'] = get_dividend_history_data(sl)
+    #data['div3r'] = create_fake_data(quote_yql(sl))
 
     print "Creating no dividends example:"
     sl = ['GOOG']
@@ -767,9 +755,9 @@ def create_data(): # pragma: no cover
     data['div2t'] = create_fake_data(div_hist_yql(sl))
     print "completed no dividends..."
 
+    #data['any'] = get_any_data(['aapl'], "yahoo.finance.quotes", "LastTradePriceOnly, Symbol, DividendShare")
 
     pickle_test_data(data)
-
 
 
 

@@ -223,7 +223,7 @@ def standardize_data(data, fields):
             elif item in ['Ex_DividendDate', 'start', 'DividendDate']:
                 value = data[row][item]
 
-                if value == "N/A" or value == None or value == "None" or value == "NaN":
+                if value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
                     data[row][item] = None
                 else:
                     if type(data[row][item]) == type(datetime.datetime):
@@ -330,7 +330,7 @@ def _convert_to_float(value):
 # Attempt to convert value to a date format or else raise a
 # ValueError exception
 def _convert_to_date(value):
-    if value == "N/A" or value == None or value == "None" or value == "NaN":
+    if value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
         return None
     else:
         try:

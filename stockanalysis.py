@@ -58,7 +58,7 @@ def analyze_data(data):
 def is_dividend_stock(stock_data_row):
     if (type(stock_data_row) != dict) or 'Symbol' not in stock_data_row:
         raise Exception("Parameter 'stock_data' must be a dictionary of data for a single stock")
-    return ('DividendHistory' in stock_data_row)
+    return ('DividendHistory' in stock_data_row and len(stock_data_row['DividendHistory']) > 0)
 
 
 

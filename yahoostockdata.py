@@ -5,6 +5,7 @@
 import urllib2
 import json
 import datetime
+import time
 
 
 __author__ = 'Bruce Nielson'
@@ -222,7 +223,7 @@ def standardize_data(data, fields):
             elif item in ['Ex_DividendDate', 'start', 'DividendDate']:
                 value = data[row][item]
 
-                if value == "N/A" or value == None or value == "None" or "NaN" in value:
+                if value == "N/A" or value == None or value == "None" or value == "NaN":
                     data[row][item] = None
                 else:
                     if type(data[row][item]) == type(datetime.datetime):
@@ -329,7 +330,7 @@ def _convert_to_float(value):
 # Attempt to convert value to a date format or else raise a
 # ValueError exception
 def _convert_to_date(value):
-    if value == "N/A" or value == None or value == "None" or "NaN" in value:
+    if value == "N/A" or value == None or value == "None" or value == "NaN":
         return None
     else:
         try:
@@ -640,6 +641,46 @@ def _safe_get_data(function, symbol_list):
 
     return final
 
+
+
+
+
+# Take a list of stock ticker symbols and return comprehensive stock data for those symbols
+# in a standardized format
+def get_combined_data(symbol_list):
+    start_time = time.clock()
+
+    quotes = get_quote_data(symbol_list)
+    stocks = get_stock_data(symbol_list)
+    div_hist = get_dividend_history_data(symbol_list)
+
+    data = quotes
+
+    for symbol in data.keys():
+
+        for key in stocks[symbol].keys():
+            if key not in data:
+                data[symbol][key] = stocks[symbol][key]
+            else:
+                if data[symbol][key] != stocks[symbol][key]:
+                    raise Exception("Data in Quotes and Stocks does not match: "\
+                                + "Key="+key+"; Value Quotes="+data[symbol][key]+" Value Stocks="+stocks[symbol][key])
+
+        if div_hist != None and symbol in div_hist:
+            for key in div_hist[symbol].keys():
+                if key not in data:
+                    data[symbol][key] = div_hist[symbol][key]
+                else:
+                    if data[symbol][key] != div_hist[symbol][key]:
+                        raise Exception("Data in Quotes and Stocks does not match: "\
+                                    + "Key="+key+"; Value Quotes="+data[symbol][key]+" Value Stocks="+div_hist[symbol][key])
+
+    standardize_data(data, ALL_FIELDS)
+
+    end_time = time.clock()
+    print str(end_time-start_time) + " seconds"
+
+    return data
 
 
 

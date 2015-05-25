@@ -40,25 +40,50 @@ def get_data(symbol_list):
 # all stocks as output by get_combined_data
 def analyze_data(data):
     # loop through each stock and analyze if it's a dividend stock or not
-    for row in data:
-        if is_dividend_stock(data[row]):
-            data[row]['IsDividend'] = True
-        else:
-            data[row]['IsDividend'] = False
+    for stock in data:
+        if 'IsDividend' not in data:
+            data[stock]['IsDividend'] = is_dividend_stock(data[stock])
+
+        # Further analysis on dividend stocks
+        if data[stock]['IsDividend'] == True:
+            analyze_dividend_history(data[stock])
 
 
-        print row + " - " + str(data[row]['IsDividend'])
 
+# Review Dividend History and tags this stock with appropriate tags
+def analyze_dividend_history(stock):
+    # Determine how long the stock has paid dividends for
+    div_hist = stock['DividendHistory']
+    first_div = div_hist[0]['Date']
+    last_div = div_hist[len(div_hist)-1]['Date']
+    div_hist_len = ((first_div - last_div).days / 365.0)
+    stock['YearsOfDividends'] = div_hist_len
+    print stock['symbol'] + " - " + str(stock['YearsOfDividends'])
 
+    # Is this a growth/stable/marred/uneven dividend and for how many years?
+    # Growth = dividend has been raised every year for some number of years
+    # stable = dividend has been stable for some number of years
+    # marred = dividend dropped only once, and other than that it was growing
+    # uneven = everything else, i.e. dividend goes up and down regularly
 
 
 
 
 # Does this stock have divident rows?
 def is_dividend_stock(stock_data_row):
-    if (type(stock_data_row) != dict) or 'Symbol' not in stock_data_row:
+    if (type(stock_data_row) != type(dict())) or ('symbol' not in stock_data_row):
         raise Exception("Parameter 'stock_data' must be a dictionary of data for a single stock")
-    return ('DividendHistory' in stock_data_row and len(stock_data_row['DividendHistory']) > 0)
+
+    has_div_hist = ('DividendHistory' in stock_data_row and len(stock_data_row['DividendHistory']) > 0)
+
+    paid_recent = False
+    if has_div_hist == True:
+        last_div_paid = stock_data_row['DividendHistory'][0]['Date']
+        days_since = (datetime.datetime.now() - last_div_paid).days
+        if days_since <= 365:
+            paid_recent = True
+
+    return has_div_hist and paid_recent
 
 
 

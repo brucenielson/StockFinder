@@ -226,13 +226,13 @@ def standardize_data(data, fields):
                 if value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
                     data[row][item] = None
                 else:
-                    if type(data[row][item]) == type(datetime.datetime):
+                    if isinstance(data[row][item], datetime.datetime):
                         pass
                     else:
                         try:
                             data[row][item] = _convert_to_date(data[row][item])
-                        except ValueError: # pragma: no cover
-                            raise ValueError("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
+                        except (TypeError, ValueError) as e: # pragma: no cover
+                            raise e("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
             # if item is a percentage
             elif item in ['QtrlyEarningsGrowth', 'PayoutRatio', 'ProfitMargin', 'TrailingAnnualDividendYield',\
@@ -247,8 +247,8 @@ def standardize_data(data, fields):
                 else:
                     try:
                         data[row][item] = float(value.strip('%').replace(",","")) / 100.0
-                    except ValueError: # pragma: no cover
-                        raise ValueError("For "+row+", "+item+": "+value+" is not a valid value.")
+                    except (TypeError, ValueError) as e: # pragma: no cover
+                        raise e("For "+row+", "+item+": "+value+" is not a valid value.")
 
     return data
 
@@ -296,6 +296,7 @@ def standardize_dividend_history_data(div_history_data, fields):
             if div['Dividends'] != 0.0:
                 div_list.append(div)
         div_history_data[symbol]['DividendHistory'] = div_list
+        div_list = []
 
     return div_history_data
 
@@ -335,11 +336,11 @@ def _convert_to_date(value):
     else:
         try:
             return datetime.datetime.strptime(value,"%Y-%m-%d")
-        except ValueError:
+        except (ValueError, TypeError):
             try:
                 return datetime.datetime.strptime(value,"%b %d, %Y")
-            except ValueError: # pragma: no cover
-                raise ValueError()
+            except (ValueError, TypeError) as e: # pragma: no cover
+                raise e
 
 
 
@@ -659,7 +660,7 @@ def get_combined_data(symbol_list):
     for symbol in data.keys():
 
         for key in stocks[symbol].keys():
-            if key not in data:
+            if key not in data[symbol]:
                 data[symbol][key] = stocks[symbol][key]
             else:
                 if data[symbol][key] != stocks[symbol][key]:
@@ -668,7 +669,7 @@ def get_combined_data(symbol_list):
 
         if div_hist != None and symbol in div_hist:
             for key in div_hist[symbol].keys():
-                if key not in data:
+                if key not in data[symbol]:
                     data[symbol][key] = div_hist[symbol][key]
                 else:
                     if data[symbol][key] != div_hist[symbol][key]:
@@ -686,7 +687,9 @@ def get_combined_data(symbol_list):
 
 
 
-def create_data(): # pragma: no cover
+
+
+def create_test_data(): # pragma: no cover
     import os
     import pickle
 

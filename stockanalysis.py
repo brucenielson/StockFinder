@@ -36,6 +36,23 @@ def get_data(symbol_list):
     data = combine_data(quote_data, stats_data, stored_date, div_hist_data)
     return data
 """
+
+
+def large_test_set():
+    snplist = stockdatabase.get_wikipedia_snp500_list()
+    snp = yahoostockdata.get_combined_data(snplist)
+    return snp
+
+
+def small_test_set():
+    stocklist = ['T', 'IBM', 'AAPL', 'GOOG', 'PKO']
+    stocks = yahoostockdata.get_combined_data(stocklist)
+    return stocks
+
+
+
+
+
 # Analyze data in various ways and label it. Input: data object with
 # all stocks as output by get_combined_data
 def analyze_data(data):
@@ -55,16 +72,64 @@ def analyze_dividend_history(stock):
     # Determine how long the stock has paid dividends for
     div_hist = stock['DividendHistory']
     first_div = div_hist[0]['Date']
-    last_div = div_hist[len(div_hist)-1]['Date']
+    last_index = len(div_hist)-1
+    last_div = div_hist[last_index]['Date']
     div_hist_len = ((first_div - last_div).days / 365.0)
     stock['YearsOfDividends'] = div_hist_len
-    print stock['symbol'] + " - " + str(stock['YearsOfDividends'])
 
-    # Is this a growth/stable/marred/uneven dividend and for how many years?
-    # Growth = dividend has been raised every year for some number of years
-    # stable = dividend has been stable for some number of years
-    # marred = dividend dropped only once, and other than that it was growing
-    # uneven = everything else, i.e. dividend goes up and down regularly
+    # Determine Dividend Growth
+    # "dividend growth" is misleading here. We're really looking for growth or stability.
+    # So what this function really does is look for a dividend in the past that is larger than the ones that come after it
+    mark_bonus_dividends(div_hist)
+    # make a list of dividends without bonuses
+    div_hist_no_bonus = [div for div in div_hist if not ('IsBonus' in div and div['IsBonus']==True)]
+    div_growth_end_date = div_hist[0]['Date']
+    div_growth_start_date = find_start_of_div_growth(div_hist_no_bonus)
+
+    print stock['symbol'] + " - " + "Years of Dividends: " + str(stock['YearsOfDividends']) + "; Start of Growth: " + str(div_growth_start_date)
+    if len(div_hist_no_bonus) < len(div_hist):
+        print str(len(div_hist)-len(div_hist_no_bonus)) + " bonus dividends"
+
+
+
+def find_start_of_div_growth(div_hist, start=0):
+    last_index = len(div_hist)-1
+    if start >= last_index:
+        raise Exception("start must not be less than length remaining to search")
+    for i in range(start, last_index-1): #we don't compare last element to the one before it because it doens't have one before it
+        if not(div_hist[i]['Dividends'] >= div_hist[i+1]['Dividends']):
+            # We just found where dividend growth (or stability) ended
+            return div_hist[i+1]['Date']
+
+    # if we never find a point where growth begins, then the very first dividend is that starting point
+    return div_hist[last_index]['Date']
+
+
+def mark_bonus_dividends(div_hist):
+    last_index = len(div_hist)-1
+    for i in range(0, last_index-1): #we don't compare last element to the one before it because it doens't have one before it
+        if not(div_hist[i]['Dividends'] >= div_hist[i+1]['Dividends']):
+            # We just found where dividend growth (or stability) potentially ended
+            # But we need to check to see if the trend can continue if we assume this is a "bonus" dividend
+            if (i+2 < last_index) and (div_hist[i]['Dividends'] >= div_hist[i+2]['Dividends']):
+                # The trend continues if we assume this is a "one off" or "bonus" dividend
+                # However, to be considered such, the following criteria must still be met:
+                # 1. This must be a year with 5 or 13 dividends
+                # 2. There must be no other bonus dividend in this year already
+                possible_bonus_div = div_hist[i+1]
+                year = possible_bonus_div['Date'].year
+                year_of_divs = [div for div in div_hist if div['Date'].year == year]
+
+                # This can't be a bonus dividend if the # of dividends for a year isn't 5 or 13
+                is_bonus = False
+                if len(year_of_divs) == 5 or len(year_of_divs) == 13:
+                    for div in year_of_divs:
+                        if not('IsBonus' in div and div['IsBonus'] == True):
+                            is_bonus = True
+                            break
+
+                if is_bonus == True:
+                    div_hist[i+1]['IsBonus'] = True
 
 
 

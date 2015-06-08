@@ -2,9 +2,94 @@ import yahoostockdata
 #import xlwt
 import xlsxwriter
 import os
+import datetime
 
 
-def create_stock_worksheet(stock_symbol):
+def create_stock_list_worksheet(data):
+    # Create workbook
+    current_date = datetime.datetime.now()
+    today_str = current_date.strftime('%Y-%b-%d')
+    book = xlsxwriter.Workbook(os.path.dirname(__file__)+"\\spreadsheets\\stocklist"+today_str+".xlsx")
+
+    # Create worksheet with list of dividend stocks with at least 10 years of history
+    div_achievers = book.add_worksheet("Dividend Achievers")
+
+    # Create formats
+    title_format = book.add_format({'bold': True})
+    title_format.set_size(18) # size * twips (=20 per point)
+    dollar_format = book.add_format({'num_format': '$#,##0.00'})
+    date_format = book.add_format({'num_format': 'dd-mmm-yyyy'})
+    percent_format = book.add_format({'num_format': '0.00%'})
+
+    # Headers
+    div_achievers.write(0,0, 'Symbol:')
+    div_achievers.write(0,1, 'Last:')
+    div_achievers.write(0,2, 'High:')
+    div_achievers.write(0,3, 'Low:')
+    div_achievers.write(0,4, 'Dividend:')
+    div_achievers.write(0,5, 'Yield:')
+    div_achievers.write(0,6, 'Years of Divs:')
+    div_achievers.write(0,7, 'Start Growth:')
+    div_achievers.write(0,8, 'Length Growth:')
+    div_achievers.write(0,9, 'Total Growth:')
+    div_achievers.write(0,10, '20 Years:')
+    div_achievers.write(0,11, '15 Years:')
+    div_achievers.write(0,12, '10 Years:')
+    div_achievers.write(0,13, '5 Years:')
+    div_achievers.write(0,14, '3 Years:')
+    div_achievers.write(0,15, '1 Years:')
+    div_achievers.write(0, 16, 'Recent:')
+
+    # Process Data
+    i = 0
+    for symbol in data.keys():
+        stock = data[symbol]
+        if 'IsDividend' not in stock:
+            continue
+        if 'YearsOfDividends' not in stock:
+            continue
+        i+=1
+        last = stock['LastTradePriceOnly']
+        high = stock['YearHigh']
+        low = stock['YearLow']
+        div = stock['DividendShare']
+        div_yield = stock['DividendYield']
+        years_div = stock['YearsOfDividends']
+        start_growth = stock['DividendGrowthStartDate']
+        len_growth = stock['YearsOfDividendGrowth']
+        total_growth = stock['TotalDividendGrowth']
+        div_achievers.write(i,0, symbol)
+        div_achievers.write(i,1, last, dollar_format)
+        div_achievers.write(i,2, high, dollar_format)
+        div_achievers.write(i,3, low, dollar_format)
+        div_achievers.write(i,4, div, dollar_format)
+        div_achievers.write(i,5, div_yield, percent_format)
+        div_achievers.write(i,6, years_div)
+        div_achievers.write(i,7, start_growth, date_format)
+        div_achievers.write(i,8, len_growth)
+        div_achievers.write(i,9, total_growth, percent_format)
+        # Handle conditional years of growth
+        if 'DividendGrowth20' in stock:
+            div_achievers.write(i,10, stock['DividendGrowth20'], percent_format)
+        if 'DividendGrowth15' in stock:
+            div_achievers.write(i,11, stock['DividendGrowth15'], percent_format)
+        if 'DividendGrowth10' in stock:
+            div_achievers.write(i,12, stock['DividendGrowth10'], percent_format)
+        if 'DividendGrowth5' in stock:
+            div_achievers.write(i,13, stock['DividendGrowth5'], percent_format)
+        if 'DividendGrowth3' in stock:
+            div_achievers.write(i,14, stock['DividendGrowth3'], percent_format)
+        if 'DividendGrowth1' in stock:
+            div_achievers.write(i,15, stock['DividendGrowth1'], percent_format)
+        div_achievers.write(i, 16, stock['RecentGrowth'], percent_format)
+
+    # Create Excel workbook
+    book.close()
+
+
+
+
+def create_stock_details_worksheet(stock_symbol):
     stock_symbol = stock_symbol.upper()
 
     # Get current data for stock symbol
@@ -63,7 +148,6 @@ def create_stock_worksheet(stock_symbol):
     quote_sheet.write(7, 1, "=B6/B7")
     quote_sheet.write(7, 2, quote['EarningsShare'])
     #quote_sheet.write(7, 3, key_stats['ForwardAnnualDividendRate'])
-
 
 
     # create workseet with all dividends

@@ -14,7 +14,7 @@ QUOTE_FIELDS = "symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " 
         + "EarningsShare, " \
         + "BookValue, EPSEstimateNextQuarter, EBITDA, EPSEstimateCurrentYear, EPSEstimateNextYear, " \
         + "PriceEPSEstimateNextYear, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
-        + "ExDividendDate, Currency"
+        + "ExDividendDate, Currency, DividendYield"
 
 
 STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
@@ -51,6 +51,21 @@ def small_test_set():
 
 
 
+
+def years_ago(years, from_date=None):
+    if from_date is None:
+        from_date = datetime.datetime.now()
+    try:
+        years = int(years)
+        return from_date.replace(year=from_date.year - years)
+    except:
+        # Must be 2/29!
+        assert from_date.month == 2 and from_date.day == 29 # can be removed
+        return from_date.replace(month=2, day=28, year=from_date.year-years)
+
+
+
+
 # Analyze data in various ways and label it. Input: data object with
 # all stocks as output by get_combined_data
 def analyze_data(data):
@@ -63,9 +78,17 @@ def analyze_data(data):
         if data[stock]['IsDividend'] == True:
             analyze_dividend_history(data[stock])
 
-    div_acheiver_10 = [data[stock] for stock in data if 'YearsOfDividendGrowth' in data[stock] and data[stock]['YearsOfDividendGrowth'] >= 10.0]
-    for div in div_acheiver_10:
-        print div['symbol'] + " - " + "Years of Dividends: " + str(div['YearsOfDividends']) + "; Start of Growth: " + str(div['DividendGrowthStartDate']) + "; Length of Growth: " + str(div['YearsOfDividendGrowth'])
+
+
+def get_div_acheivers(data, years):
+    div_acheiver = {}
+    for symbol in data.keys():
+        stock = data[symbol]
+        if 'YearsOfDividendGrowth' in stock and stock['YearsOfDividendGrowth'] >= years:
+            div_acheiver[symbol] = data[symbol]
+
+    return div_acheiver
+
 
 
 # Review Dividend History and tags this stock with appropriate tags
@@ -79,7 +102,7 @@ def analyze_dividend_history(stock):
         return
 
     start_div_date = div_hist[last_index]['Date']
-    div_hist_len = ((most_recent_div_date - start_div_date).days / 365.0)
+    div_hist_len = ((most_recent_div_date - start_div_date).days / 365.25)
     stock['YearsOfDividends'] = div_hist_len
 
     # Determine Dividend Growth
@@ -96,14 +119,78 @@ def analyze_dividend_history(stock):
     tot_divs_per_year = create_div_totals_by_year(div_hist)[1:]
     stock['TotalDividendsPerYear'] = tot_divs_per_year
 
-    div_growth_start_date = find_start_of_div_growth(div_hist_no_bonus, tot_divs_per_year_no_bonus)
+    # TODO Calculate a trailing year of dividends not including bonus dividends
+
+    div_growth_start_div = find_start_of_div_growth(div_hist_no_bonus, tot_divs_per_year_no_bonus)
+    stock['FirstDividendGrowth'] = div_growth_start_div
+    div_growth_start_date = div_growth_start_div['Date']
     stock['DividendGrowthStartDate'] = div_growth_start_date
-    div_growth_len = ((most_recent_div_date - div_growth_start_date).days / 365.0)
+    div_growth_len = ((most_recent_div_date - div_growth_start_date).days / 365.25)
     stock['YearsOfDividendGrowth'] = div_growth_len
 
-    #print stock['symbol'] + " - " + "Years of Dividends: " + str(stock['YearsOfDividends']) + "; Start of Growth: " + str(div_growth_start_date) + "; Length of Growth: " + str(div_growth_len)
+    # Determine Total Growth
+    recent_growth = []
+    if div_growth_len >= 1.0:
+        most_recent_div = div_hist[0]
+        total_div_growth_amt = float(most_recent_div['Dividends']) - float(div_growth_start_div['Dividends'])
+        total_div_growth_rate = total_div_growth_amt / float(div_growth_start_div['Dividends'])
+        stock['TotalDividendGrowth'] = total_div_growth_rate / div_growth_len
+        # Growth amounts by year
+        if div_growth_len >= 20.0:
+            stock['DividendGrowth20'] = get_div_growth(div_hist, 20) / 20.0
+        if div_growth_len >= 15.0:
+            stock['DividendGrowth15'] = get_div_growth(div_hist, 15) / 15.0
+        if div_growth_len >= 10.0:
+            stock['DividendGrowth10'] = get_div_growth(div_hist, 10) / 10.0
+        if div_growth_len >= 5.0:
+            stock['DividendGrowth5'] = get_div_growth(div_hist, 5) / 5.0
+            recent_growth.append(stock['DividendGrowth5'])
+        if div_growth_len >= 3.0:
+            stock['DividendGrowth3'] = get_div_growth(div_hist, 3) / 3.0
+            recent_growth.append(stock['DividendGrowth3'])
+        if div_growth_len >= 1.0:
+            stock['DividendGrowth1'] = get_div_growth(div_hist, 1)
+            recent_growth.append(stock['DividendGrowth1'])
+
+        stock['RecentGrowth'] = min(recent_growth)
+
+    #print stock['symbol'] + " - " + "Years of Dividends: " + str(stock['YearsOfDividends']) + "; Start of Growth: " + str(div_growth_start_date) + "; Length of Growth: " + str(div_growth_len) + "; Total Div Growth: " + str(total_div_growth_rate)
     #if len(div_hist_no_bonus) < len(div_hist):
     #    print str(len(div_hist)-len(div_hist_no_bonus)) + " bonus dividends"
+    #if div_growth_len >= 20.0:
+    #    print "20 Year: " + str(stock['DividendGrowth20'])
+    #if div_growth_len >= 15.0:
+    #    print "15 Year: " + str(stock['DividendGrowth15'])
+    #if div_growth_len >= 10.0:
+    #    print "10 Year: " + str(stock['DividendGrowth10'])
+    #if div_growth_len >= 5.0:
+    #    print "5 Year: " + str(stock['DividendGrowth5'])
+    #if div_growth_len >= 3.0:
+    #    print "3 Year: " + str(stock['DividendGrowth3'])
+    #if div_growth_len >= 1.0:
+    #    print "1 Year: " + str(stock['DividendGrowth1'])
+
+
+
+
+
+# Find the dividend amount a number of 'years' ago. Since years is not likely to be exact, find the first dividend
+# on or just before that number of years and return it
+def get_div_growth(div_hist, years):
+    # Get most recent div
+    most_recent_div = div_hist[0]
+    most_recent_date = most_recent_div['Date']
+    # Search for dividend years ago
+    target_date = years_ago(years, most_recent_date)
+    for div in div_hist:
+        div_date = div['Date']
+        if div_date <= target_date:
+            div_growth_amt = float(most_recent_div['Dividends']) - float(div['Dividends'])
+            div_growth_rate = div_growth_amt / float(div['Dividends'])
+            return div_growth_rate
+
+    # Raise an error if we don't find the right dividend
+    raise Exception("Not enough dividends in dividend history for " + str(years) +".")
 
 
 
@@ -122,7 +209,10 @@ def create_div_totals_by_year(div_hist):
 
     return divs_per_year
 
-
+def get_trailing_dividend(div_hist):
+    #start_date = div_hist[0]['Date']
+    #end_date = start_date.replace(year=start_date.year - 1)
+    pass
 
 
 def find_start_of_div_growth(div_hist, tot_divs_per_year=[], start=0):
@@ -168,11 +258,13 @@ def find_start_of_div_growth(div_hist, tot_divs_per_year=[], start=0):
     for i in range(start, last_index): #We don't compare last element to the one before it because it doens't have one before it
         if not(div_hist[i]['Dividends'] >= div_hist[i+1]['Dividends']):
             # We just found where dividend growth (or stability) ended
-            return div_hist[i]['Date']
+            div_hist[i]['StartOfDividendGrowth'] = True
+            return div_hist[i]
 
 
     # if we never find a point where growth begins, then the very first dividend is that starting point
-    return div_hist[last_index]['Date']
+    div_hist[last_index]['StartOfDividendGrowth'] = True
+    return div_hist[last_index]
 
 
 

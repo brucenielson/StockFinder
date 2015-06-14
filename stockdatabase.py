@@ -1,4 +1,4 @@
-import lxml.html
+import lxml, lxml.html, requests
 import sqlite3
 import os
 import pickle
@@ -53,11 +53,37 @@ def get_wikipedia_snp500_list():
     now = datetime.datetime.utcnow()
 
     # TODO: Can I rewrite this to work without lxml package which isn't standard?
-    # Use libxml to download the list of S&P500 companies and obtain the symbol table
-    page = lxml.html.parse('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-    symbol_list = page.xpath('//table[1]/tr/td[1]/a/text()')
+    try:
+        # Try old way
+        # Use libxml to download the list of S&P500 companies and obtain the symbol table
+        page = lxml.html.parse('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
+        symbol_list = page.xpath('//table[1]/tr/td[1]/a/text()')
+    except:
+        html = 'http://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
+        r = requests.get(html)
+        root = lxml.html.fromstring(r.content)
+        symbol_list = root.xpath('//table[1]/tr/td[1]/a/text()')
 
     return [str(item) for item in symbol_list]
+
+
+
+def test():
+    # https://blog.scraperwiki.com/2011/12/how-to-scrape-and-parse-wikipedia/
+    import lxml.etree
+    import urllib
+
+    title = "Aquamole Pot"
+
+    params = { "format":"xml", "action":"query", "prop":"revisions", "rvprop":"timestamp|user|comment|content" }
+    params["titles"] = "API|%s" % urllib.quote(title.encode("utf8"))
+    qs = "&".join("%s=%s" % (k, v)  for k, v in params.items())
+    url = "http://en.wikipedia.org/w/api.php?%s" % qs
+    tree = lxml.etree.parse(urllib.urlopen(url))
+    revs = tree.xpath('//rev')
+
+    print "The Wikipedia text for", title, "is"
+    print revs[-1].text
 
 
 def pickle_snp_500_list():
@@ -74,6 +100,23 @@ def get_pickled_snp_500_list():
     sl = pickle.load(f)
     f.close()
     return sl
+
+
+
+
+def pickle_stock_data(data):
+    f = open(os.path.dirname(__file__)+"\\"+'snpdata.txt', 'w')
+    pickle.dump(data, f)
+    f.close()
+
+
+
+def get_pickle_stock_data():
+    f = open(os.path.dirname(__file__)+"\\"+'snpdata.txt')
+    sl = pickle.load(f)
+    f.close()
+    return sl
+
 
 
 

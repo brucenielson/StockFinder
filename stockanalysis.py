@@ -2,27 +2,28 @@ import yahoostockdata
 import stockdatabase
 import datetime
 
-KEY_STATS_FIELDS = "symbol, TotalDebt, MarketCap, " \
-         + "OperatingCashFlow, Beta, "\
-         + "DividendDate, Ex_DividendDate, ForwardAnnualDividendRate, "\
-         + "TotalCashPerShare, QtrlyEarningsGrowth, "\
-         + "TotalCash, Revenue, ForwardPE, SharesOutstanding, "\
-         + "TotalDebtEquity"
+
+#KEY_STATS_FIELDS = "symbol, TotalDebt, MarketCap, " \
+#         + "OperatingCashFlow, Beta, "\
+#         + "DividendDate, Ex_DividendDate, ForwardAnnualDividendRate, "\
+#         + "TotalCashPerShare, QtrlyEarningsGrowth, "\
+#         + "TotalCash, Revenue, ForwardPE, SharesOutstanding, "\
+#         + "TotalDebtEquity"
 
 
-QUOTE_FIELDS = "symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
-        + "EarningsShare, " \
-        + "BookValue, EPSEstimateNextQuarter, EBITDA, EPSEstimateCurrentYear, EPSEstimateNextYear, " \
-        + "PriceEPSEstimateNextYear, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
-        + "ExDividendDate, Currency, DividendYield"
+#QUOTE_FIELDS = "symbol, LastTradePriceOnly, YearLow, YearHigh, DividendShare, " \
+#        + "EarningsShare, " \
+#        + "BookValue, EPSEstimateNextQuarter, EBITDA, EPSEstimateCurrentYear, EPSEstimateNextYear, " \
+#        + "PriceEPSEstimateNextYear, MarketCapitalization, Name, HoldingsValue, DividendPayDate, " \
+#        + "ExDividendDate, Currency, DividendYield"
 
 
-STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
+#STOCK_FIELDS = "symbol, Industry, Sector, start, FullTimeEmployees"
 
-DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
+#DIVIDEND_HISTORY_FIELDS = "Symbol, Dividends, Date"
 
 
-ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
+#ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
 
 
 
@@ -39,6 +40,12 @@ def get_data(symbol_list):
 
 
 def large_test_set():
+    #snplist = []
+    #try:
+    #    snplist = stockdatabase.get_wikipedia_snp500_list()
+    #except:
+    #    snplist = stockdatabase.get_pickled_snp_500_list()
+
     snplist = stockdatabase.get_wikipedia_snp500_list()
     snp = yahoostockdata.get_combined_data(snplist)
     return snp
@@ -130,6 +137,7 @@ def analyze_dividend_history(stock):
 
     # Determine Total Growth
     recent_growth = []
+    #print div_growth_len
     if div_growth_len >= 1.0:
         most_recent_div = div_hist[0]
         total_div_growth_amt = float(most_recent_div['Dividends']) - float(div_growth_start_div['Dividends'])
@@ -152,23 +160,35 @@ def analyze_dividend_history(stock):
             stock['DividendGrowth1'] = get_div_growth(div_hist, 1)
             recent_growth.append(stock['DividendGrowth1'])
 
-        stock['RecentGrowth'] = min(recent_growth)
+        recent_growth = min(recent_growth)
+        stock['RecentGrowth'] = recent_growth
 
-    #print stock['symbol'] + " - " + "Years of Dividends: " + str(stock['YearsOfDividends']) + "; Start of Growth: " + str(div_growth_start_date) + "; Length of Growth: " + str(div_growth_len) + "; Total Div Growth: " + str(total_div_growth_rate)
-    #if len(div_hist_no_bonus) < len(div_hist):
-    #    print str(len(div_hist)-len(div_hist_no_bonus)) + " bonus dividends"
-    #if div_growth_len >= 20.0:
-    #    print "20 Year: " + str(stock['DividendGrowth20'])
-    #if div_growth_len >= 15.0:
-    #    print "15 Year: " + str(stock['DividendGrowth15'])
-    #if div_growth_len >= 10.0:
-    #    print "10 Year: " + str(stock['DividendGrowth10'])
-    #if div_growth_len >= 5.0:
-    #    print "5 Year: " + str(stock['DividendGrowth5'])
-    #if div_growth_len >= 3.0:
-    #    print "3 Year: " + str(stock['DividendGrowth3'])
-    #if div_growth_len >= 1.0:
-    #    print "1 Year: " + str(stock['DividendGrowth1'])
+        # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
+        if 'DividendGrowth3' in stock and stock['DividendGrowth3'] > stock['DividendGrowth1']:
+            diff = stock['DividendGrowth3'] - stock['DividendGrowth1']
+            projected_growth = recent_growth - diff
+            if projected_growth < 0.0:
+                projected_growth = 0.0
+            stock['ProjectedGrowth'] = projected_growth
+        else:
+            stock['ProjectedGrowth'] = recent_growth
+
+
+        #print stock['symbol'] + " - " + "Years of Dividends: " + str(stock['YearsOfDividends']) + "; Start of Growth: " + str(div_growth_start_date) + "; Length of Growth: " + str(div_growth_len) + "; Total Div Growth: " + str(total_div_growth_rate)
+        #if len(div_hist_no_bonus) < len(div_hist):
+        #    print str(len(div_hist)-len(div_hist_no_bonus)) + " bonus dividends"
+        #if div_growth_len >= 20.0:
+        #    print "20 Year: " + str(stock['DividendGrowth20'])
+        #if div_growth_len >= 15.0:
+        #    print "15 Year: " + str(stock['DividendGrowth15'])
+        #if div_growth_len >= 10.0:
+        #    print "10 Year: " + str(stock['DividendGrowth10'])
+        #if div_growth_len >= 5.0:
+        #    print "5 Year: " + str(stock['DividendGrowth5'])
+        #if div_growth_len >= 3.0:
+        #    print "3 Year: " + str(stock['DividendGrowth3'])
+        #if div_growth_len >= 1.0:
+        #    print "1 Year: " + str(stock['DividendGrowth1'])
 
 
 

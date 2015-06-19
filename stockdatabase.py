@@ -41,14 +41,26 @@ def create_database(database_name = "stocksdata.db"):
 
 
 
+
+def get_mlp_list():
+    return get_web_stock_list('http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()')
+
+
+
+def get_cef_list():
+    return get_web_stock_list('http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()')
+
+
+
 # Get a list of all current S&P 500 stocks off of Wikipedia.
 # Since Wikipedia is constantly updated, this should always be an
 # up to date list.
 def get_wikipedia_snp500_list():
-    #Download and parse the Wikipedia list of S&P500
-    #constituents using requests and libxml.
-    #Returns a list symbols from off wikipedia
+    return get_web_stock_list('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()')
 
+
+
+def get_web_stock_list(url, xpath):
     # Stores the current time, for the created_at record
     now = datetime.datetime.utcnow()
 
@@ -56,15 +68,18 @@ def get_wikipedia_snp500_list():
     try:
         # Try old way
         # Use libxml to download the list of S&P500 companies and obtain the symbol table
-        page = lxml.html.parse('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies')
-        symbol_list = page.xpath('//table[1]/tr/td[1]/a/text()')
+        page = lxml.html.parse(url)
+        symbol_list = page.xpath(xpath)
     except:
-        html = 'http://en.wikipedia.org/wiki/List_of_S%26P_500_companies'
-        r = requests.get(html)
+        r = requests.get(url)
         root = lxml.html.fromstring(r.content)
-        symbol_list = root.xpath('//table[1]/tr/td[1]/a/text()')
+        symbol_list = root.xpath(xpath)
 
     return [str(item) for item in symbol_list]
+
+
+
+
 
 
 

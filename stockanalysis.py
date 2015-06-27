@@ -163,16 +163,6 @@ def analyze_dividend_history(stock):
         recent_growth = min(recent_growth)
         stock['RecentGrowth'] = recent_growth
 
-        # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
-        if 'DividendGrowth3' in stock and stock['DividendGrowth3'] > stock['DividendGrowth1']:
-            diff = stock['DividendGrowth3'] - stock['DividendGrowth1']
-            projected_growth = recent_growth - diff
-            if projected_growth < 0.0:
-                projected_growth = 0.0
-            stock['ProjectedGrowth'] = projected_growth
-        else:
-            stock['ProjectedGrowth'] = recent_growth
-
 
         #print stock['symbol'] + " - " + "Years of Dividends: " + str(stock['YearsOfDividends']) + "; Start of Growth: " + str(div_growth_start_date) + "; Length of Growth: " + str(div_growth_len) + "; Total Div Growth: " + str(total_div_growth_rate)
         #if len(div_hist_no_bonus) < len(div_hist):
@@ -244,29 +234,38 @@ def find_start_of_div_growth(div_hist, tot_divs_per_year=[], start=0):
 
     # Find last year of yearly dividend growth or last non-zero year
     last = len(tot_divs_per_year)-1
-    start_year = tot_divs_per_year[last][0]
-    end_year = tot_divs_per_year[0][0]
+    last_index = len(div_hist)-1
+    if last >= 0:
+        start_year = tot_divs_per_year[last][0]
+        end_year = tot_divs_per_year[0][0]
+    else:
+        start_div_date = div_hist[last_index]['Date']
+        start_year =  start_div_date.year
+        end_year = start_year
 
     last_year_of_growth = 0
-    years = list(reversed(range(start_year, end_year+1)))
-    for i in range(0, len(years)):
-        # Continue searching while we're dealing with a non-zero year
-        if tot_divs_per_year[i][1] > 0.0:
-            # Check if we're on final year yet
-            if i < len(years)-1:
-                div_this_year = tot_divs_per_year[i][1]
-                div_next_year = tot_divs_per_year[i+1][1]
-                if not(div_this_year >= div_next_year):
-                    # next years dividend ends growth phase
+    if start_year != end_year:
+        years = list(reversed(range(start_year, end_year+1)))
+        for i in range(0, len(years)):
+            # Continue searching while we're dealing with a non-zero year
+            if tot_divs_per_year[i][1] > 0.0:
+                # Check if we're on final year yet
+                if i < len(years)-1:
+                    div_this_year = tot_divs_per_year[i][1]
+                    div_next_year = tot_divs_per_year[i+1][1]
+                    if not(div_this_year >= div_next_year):
+                        # next years dividend ends growth phase
+                        last_year_of_growth = tot_divs_per_year[i][0]
+                        break
+                else: # Else i = final year, so we're already on last year
                     last_year_of_growth = tot_divs_per_year[i][0]
                     break
-            else: # Else i = final year, so we're already on last year
-                last_year_of_growth = tot_divs_per_year[i][0]
+            else: # Else we found a zero dividend year
+                # This year has no dividends, so previous year is last year
+                last_year_of_growth = tot_divs_per_year[i-1][0]
                 break
-        else: # Else we found a zero dividend year
-            # This year has no dividends, so previous year is last year
-            last_year_of_growth = tot_divs_per_year[i-1][0]
-            break
+    else:
+        last_year_of_growth = start_year
 
     # We found last year of growth - now translate that to last index to search for growth in: i.e. only search one year beyond last year of growth
     div_hist = [div for div in div_hist if div['Date'].year >= last_year_of_growth-1]

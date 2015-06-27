@@ -8,15 +8,18 @@ import stockanalysis
 
 
 
-def create_div_achievers_list(reset_snp=False):
+def create_div_achievers_list(use_saved_snp=False):
     snp = []
-    if reset_snp == False:
+    if use_saved_snp == True:
         snplist = stockdatabase.get_pickled_snp_500_list()
         snp = stockdatabase.get_pickle_stock_data()
 
     if snp == []:
         snplist = stockdatabase.get_wikipedia_snp500_list()
         snp = yahoostockdata.get_combined_data(snplist)
+        # save most recent for next time
+        stockdatabase.pickle_snp_500_list(snplist)
+        stockdatabase.pickle_stock_data(snp)
 
     stockanalysis.analyze_data(snp)
     div_achievers_10 = stockanalysis.get_div_acheivers(snp, 10)
@@ -110,13 +113,31 @@ def create_stock_list_worksheet(data):
         if 'DividendGrowth1' in stock:
             div_achievers.write(i,16, stock['DividendGrowth1'], percent_format)
 
-        div_achievers.write(i, 17, stock['RecentGrowth'], percent_format)
-        projected_growth = stock['ProjectedGrowth']
-        div_achievers.write(i, 18, projected_growth, percent_format)
-        projected_growth = projected_growth + 1.0
-        projected_div = div * projected_growth*projected_growth*projected_growth*projected_growth*projected_growth
-        div_achievers.write(i, 19, projected_div, dollar_format)
-        div_achievers.write(i, 20, projected_div / last, percent_format)
+        #print div_growth_len
+        if len_growth >= 1.0:
+            most_recent_div = stock['DividendHistory'][0]
+            div_growth_start_div = stock['FirstDividendGrowth']
+            div_growth_len = stock['YearsOfDividendGrowth']
+            total_div_growth_amt = float(most_recent_div['Dividends']) - float(div_growth_start_div['Dividends'])
+            total_div_growth_rate = total_div_growth_amt / float(div_growth_start_div['Dividends'])
+            recent_growth = stock['RecentGrowth']
+
+            # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
+            if 'DividendGrowth3' in stock and stock['DividendGrowth3'] > stock['DividendGrowth1']:
+                diff = stock['DividendGrowth3'] - stock['DividendGrowth1']
+                projected_growth = recent_growth - diff
+                if projected_growth < 0.0:
+                    projected_growth = 0.0
+            else:
+                projected_growth = recent_growth
+
+            # Print projected growth figures
+            div_achievers.write(i, 17, stock['RecentGrowth'], percent_format)
+            div_achievers.write(i, 18, projected_growth, percent_format)
+            projected_growth = projected_growth + 1.0
+            projected_div = div * projected_growth*projected_growth*projected_growth*projected_growth*projected_growth
+            div_achievers.write(i, 19, projected_div, dollar_format)
+            div_achievers.write(i, 20, projected_div / last, percent_format)
 
 
     # Create Excel workbook

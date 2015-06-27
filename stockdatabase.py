@@ -101,8 +101,11 @@ def test():
     print revs[-1].text
 
 
-def pickle_snp_500_list():
-    symbol_list = get_wikipedia_snp500_list()
+def pickle_snp_500_list(snplist=None):
+    if snplist == None:
+        symbol_list = get_wikipedia_snp500_list()
+    else:
+        symbol_list = snplist
     f = open(os.path.dirname(__file__)+"\\"+'snplist.txt', 'w')
     pickle.dump(symbol_list, f)
     f.close()

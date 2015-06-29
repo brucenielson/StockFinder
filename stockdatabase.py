@@ -42,25 +42,43 @@ def create_database(database_name = "stocksdata.db"):
 
 
 
-def get_mlp_list():
-    return get_web_stock_list('http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()')
+def get_mlp_list(get_local=False):
+    if get_local == True:
+        return get_pickled_list('mlplist')
+    else:
+        return get_web_stock_list('http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()', 'mlplist')
 
 
 
-def get_cef_list():
-    return get_web_stock_list('http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()')
+def get_cef_list(get_local=False):
+    if get_local == True:
+        return get_pickled_list('ceflist')
+    else:
+        return get_web_stock_list('http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()', 'ceflist')
 
 
 
 # Get a list of all current S&P 500 stocks off of Wikipedia.
 # Since Wikipedia is constantly updated, this should always be an
 # up to date list.
-def get_wikipedia_snp500_list():
-    return get_web_stock_list('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()')
+def get_snp500_list(get_local=False):
+    if get_local == True:
+        return get_pickled_list('snplist')
+    else:
+        return get_web_stock_list('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()', 'snplist')
 
 
 
-def get_web_stock_list(url, xpath):
+
+def get_pickled_list(list_name):
+    f = open(os.path.dirname(__file__)+"\\" + list_name + '.txt')
+    sl = pickle.load(f)
+    f.close()
+    return sl
+
+
+
+def get_web_stock_list(url, xpath, list_name=None):
     # Stores the current time, for the created_at record
     now = datetime.datetime.utcnow()
 
@@ -71,11 +89,33 @@ def get_web_stock_list(url, xpath):
         page = lxml.html.parse(url)
         symbol_list = page.xpath(xpath)
     except:
-        r = requests.get(url)
-        root = lxml.html.fromstring(r.content)
-        symbol_list = root.xpath(xpath)
+        try:
+            # try the new way
+            r = requests.get(url)
+            root = lxml.html.fromstring(r.content)
+            symbol_list = root.xpath(xpath)
+        except:
+            # both ways failed, so load from pickle
+            f = open(os.path.dirname(__file__)+"\\" + str(list_name) + '.txt')
+            symbol_list = []
+            symbol_list = pickle.load(f)
+            f.close()
 
-    return [str(item) for item in symbol_list]
+
+    result = [str(item) for item in symbol_list]
+    # Pickle result for future retrieval if page can't be reached
+    if list_name != None:
+        file_name = os.path.dirname(__file__)+"\\" + str(list_name) + '.txt'
+        try:
+            os.remove(file_name)
+        except:
+            pass
+
+        f = open(os.path.dirname(__file__)+"\\" + str(list_name) + '.txt', 'w')
+        pickle.dump(result, f)
+        f.close()
+
+    return result
 
 
 
@@ -102,19 +142,21 @@ def test():
 
 
 def pickle_snp_500_list(snplist=None):
-    if snplist == None:
-        symbol_list = get_wikipedia_snp500_list()
-    else:
-        symbol_list = snplist
-    f = open(os.path.dirname(__file__)+"\\"+'snplist.txt', 'w')
-    pickle.dump(symbol_list, f)
-    f.close()
+    pass
+    #if snplist == None:
+    #    symbol_list = get_snp500_list()
+    #else:
+    #    symbol_list = snplist
+    #f = open(os.path.dirname(__file__)+"\\"+'snplist.txt', 'w')
+    #pickle.dump(symbol_list, f)
+    #f.close()
 
 
 
 
 def get_pickled_snp_500_list():
     f = open(os.path.dirname(__file__)+"\\"+'snplist.txt')
+    sl = []
     sl = pickle.load(f)
     f.close()
     return sl

@@ -29,6 +29,60 @@ def create_div_achievers_list(use_saved_snp=False):
 
 
 
+column_count = 0
+column_list = []
+
+def init_columns():
+    global column_count
+    column_count = 0
+    global column_list
+    column_list = []
+
+
+def add_column(worksheet, col_name, col_value, format=None):
+    # Write Label in first row
+    global column_count
+    worksheet.write(0, column_count, str(col_name)+":")
+    column_count += 1
+    # Create column list for writing out data
+    global column_list
+    new_col = (col_value, format)
+    column_list.append(new_col)
+
+
+
+
+def get_div_growth_info(data):
+    for symbol in data.keys():
+        stock = data[symbol]
+        stock['CalcYield'] = float(stock['DividendShare']) / float(stock['LastTradePriceOnly'])
+
+        if stock['YearsOfDividendGrowth'] >= 1.0:
+            stock['MostRecentDiv'] = most_recent_div = stock['DividendHistory'][0]
+            div_growth_start_div = stock['FirstDividendGrowth']
+            stock['TotalDivenendGrowth'] = total_div_growth_amt = float(most_recent_div['Dividends']) - float(div_growth_start_div['Dividends'])
+            stock['TotalDividendGrowthRate'] = total_div_growth_rate = total_div_growth_amt / float(div_growth_start_div['Dividends'])
+            recent_growth = stock['RecentGrowth']
+
+            # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
+            if 'DividendGrowth3' in stock and 'DividendGrowth1' in stock and stock['DividendGrowth3'] > stock['DividendGrowth1']:
+                diff = stock['DividendGrowth3'] - stock['DividendGrowth1']
+                projected_growth = recent_growth - diff
+                if projected_growth < 0.0:
+                    projected_growth = 0.0
+            else:
+                projected_growth = recent_growth
+
+            stock['ProjectedGrowth'] = projected_growth
+            stock['ProjectedDividend'] = projected_div = float(stock['DividendShare']) + (float(stock['DividendShare']) * projected_growth) * 5
+            stock['ProjectedRate'] = projected_div / stock['LastTradePriceOnly']
+
+            # Find Adjusted Dividend
+            max_div = max([0, stock['EarningsShare']]) * 0.6
+            stock['AdjustedDividend'] = min([max_div, stock['DividendShare']])
+            stock['PayoutRatioWarning'] = (stock['AdjustedDividend'] < stock['DividendShare'])
+
+
 
 def create_stock_list_worksheet(data):
     # Create workbook
@@ -46,102 +100,74 @@ def create_stock_list_worksheet(data):
     date_format = book.add_format({'num_format': 'dd-mmm-yyyy'})
     percent_format = book.add_format({'num_format': '0.00%'})
 
-    # Headers
-    div_achievers.write(0,0, 'Symbol:')
-    div_achievers.write(0,1, 'Name:')
-    div_achievers.write(0,2, 'Last:')
-    div_achievers.write(0,3, 'High:')
-    div_achievers.write(0,4, 'Low:')
-    div_achievers.write(0,5, 'Dividend:')
-    div_achievers.write(0,6, 'Yield:')
-    div_achievers.write(0,7, 'Years of Divs:')
-    div_achievers.write(0,8, 'Start Growth:')
-    div_achievers.write(0,9, 'Length Growth:')
-    div_achievers.write(0,10, 'Total Growth:')
-    div_achievers.write(0,11, '20 Years:')
-    div_achievers.write(0,12, '15 Years:')
-    div_achievers.write(0,13, '10 Years:')
-    div_achievers.write(0,14, '5 Years:')
-    div_achievers.write(0,15, '3 Years:')
-    div_achievers.write(0,16, '1 Year:')
-    div_achievers.write(0,17, 'Recent:')
-    div_achievers.write(0,18, 'Projected:')
-    div_achievers.write(0,19, 'Projected Div 5 year:')
-    div_achievers.write(0,20, 'Projected Yield 5 year:')
+    #Pre-Process Data
+    get_div_growth_info(data)
 
-    # Process Data
-    i = 0
-    for symbol in data.keys():
-        stock = data[symbol]
-        if 'IsDividend' not in stock:
-            continue
-        if 'YearsOfDividends' not in stock:
-            continue
-        i+=1
-        name = stock['CompanyName']
-        last = stock['LastTradePriceOnly']
-        high = stock['YearHigh']
-        low = stock['YearLow']
-        div = stock['DividendShare']
-        div_yield = div / last
-        years_div = stock['YearsOfDividends']
-        start_growth = stock['DividendGrowthStartDate']
-        len_growth = stock['YearsOfDividendGrowth']
-        total_growth = stock['TotalDividendGrowth']
-        div_achievers.write(i,0, symbol)
-        div_achievers.write(i,1, name)
-        div_achievers.write(i,2, last, dollar_format)
-        div_achievers.write(i,3, high, dollar_format)
-        div_achievers.write(i,4, low, dollar_format)
-        div_achievers.write(i,5, div, dollar_format)
-        div_achievers.write(i,6, div_yield, percent_format)
-        div_achievers.write(i,7, years_div)
-        div_achievers.write(i,8, start_growth, date_format)
-        div_achievers.write(i,9, len_growth)
-        div_achievers.write(i,10, total_growth, percent_format)
-        # Handle conditional years of growth
-        if 'DividendGrowth20' in stock:
-            div_achievers.write(i,11, stock['DividendGrowth20'], percent_format)
-        if 'DividendGrowth15' in stock:
-            div_achievers.write(i,12, stock['DividendGrowth15'], percent_format)
-        if 'DividendGrowth10' in stock:
-            div_achievers.write(i,13, stock['DividendGrowth10'], percent_format)
-        if 'DividendGrowth5' in stock:
-            div_achievers.write(i,14, stock['DividendGrowth5'], percent_format)
-        if 'DividendGrowth3' in stock:
-            div_achievers.write(i,15, stock['DividendGrowth3'], percent_format)
-        if 'DividendGrowth1' in stock:
-            div_achievers.write(i,16, stock['DividendGrowth1'], percent_format)
+    # Create Columns
+    init_columns()
+    add_column(div_achievers, 'Symbol', 'symbol')
+    add_column(div_achievers, 'Name', 'Name')
+    add_column(div_achievers, 'Last', 'LastTradePriceOnly', dollar_format)
+    add_column(div_achievers, 'High', 'YearHigh', dollar_format)
+    add_column(div_achievers, 'Low', 'YearLow', dollar_format)
+    add_column(div_achievers, 'Dividend', 'DividendShare', dollar_format)
+    add_column(div_achievers, 'Yield', 'CalcYield', percent_format)
+    add_column(div_achievers, 'EPS', 'EarningsShare', dollar_format)
+    add_column(div_achievers, 'Adjusted Div:', 'AdjustedDividend', dollar_format)
+    add_column(div_achievers, 'Div Warn:', 'PayoutRatioWarning')
+    add_column(div_achievers, 'Years of Divs', 'YearsOfDividends')
+    add_column(div_achievers, 'Start Growth', 'DividendGrowthStartDate', date_format)
+    add_column(div_achievers, 'Length Growth', 'YearsOfDividendGrowth')
+    add_column(div_achievers, 'Total Growth', 'TotalDividendGrowth', percent_format)
+    #add_column(div_achievers, '20 Years', 'DividendGrowth20', percent_format)
+    #add_column(div_achievers, '15 Years', 'DividendGrowth15', percent_format)
+    #add_column(div_achievers, '10 Years', 'DividendGrowth10', percent_format)
+    #add_column(div_achievers, '5 Years', 'DividendGrowth5', percent_format)
+    #add_column(div_achievers, '3 Years', 'DividendGrowth3', percent_format)
+    #add_column(div_achievers, '1 Year', 'DividendGrowth1', percent_format)
+    add_column(div_achievers, 'Recent', 'RecentGrowth', percent_format)
+    add_column(div_achievers, 'Projected', 'ProjectedGrowth', percent_format)
+    add_column(div_achievers, 'Projected Div 5 year', 'ProjectedDividend', dollar_format)
+    add_column(div_achievers, 'Projected Yield 5 year', 'ProjectedRate', percent_format)
 
-        #print div_growth_len
-        if len_growth >= 1.0:
-            most_recent_div = stock['DividendHistory'][0]
-            div_growth_start_div = stock['FirstDividendGrowth']
-            div_growth_len = stock['YearsOfDividendGrowth']
-            total_div_growth_amt = float(most_recent_div['Dividends']) - float(div_growth_start_div['Dividends'])
-            total_div_growth_rate = total_div_growth_amt / float(div_growth_start_div['Dividends'])
-            recent_growth = stock['RecentGrowth']
+    # Create sort order by projected yield
+    sort_order = create_sort_list(data, 'ProjectedRate')
 
-            # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
-            if 'DividendGrowth3' in stock and stock['DividendGrowth3'] > stock['DividendGrowth1']:
-                diff = stock['DividendGrowth3'] - stock['DividendGrowth1']
-                projected_growth = recent_growth - diff
-                if projected_growth < 0.0:
-                    projected_growth = 0.0
-            else:
-                projected_growth = recent_growth
-
-            # Print projected growth figures
-            div_achievers.write(i, 17, stock['RecentGrowth'], percent_format)
-            div_achievers.write(i, 18, projected_growth, percent_format)
-            projected_growth = projected_growth + 1.0
-            projected_div = div * projected_growth*projected_growth*projected_growth*projected_growth*projected_growth
-            div_achievers.write(i, 19, projected_div, dollar_format)
-            div_achievers.write(i, 20, projected_div / last, percent_format)
-
+    # Write out the sheet
+    create_sheet(div_achievers, data, sort_order)
 
     # Create Excel workbook
     book.close()
+
+
+
+def create_sort_list(data, column):
+    # Create sort order by projected yield
+    sort_order = [(symbol, data[symbol][column]) for symbol in data.keys()]
+    sort_order.sort(key=lambda sort_order: sort_order[1], reverse=True)
+    sort_order = [item[0] for item in sort_order]
+    return sort_order
+
+
+
+
+
+def create_sheet(worksheet, data, sort_order=None):
+    global column_list
+
+    if sort_order == None:
+        sort_order = data.keys()
+
+    # Process Data
+    i = 1
+    for symbol in sort_order:
+        stock = data[symbol]
+        j = 0
+        for column in column_list:
+            if column[0] in stock:
+                worksheet.write(i, j, stock[column[0]], column[1])
+            j += 1
+        i+=1
 
 
 

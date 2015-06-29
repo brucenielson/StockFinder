@@ -190,8 +190,8 @@ def get_div_growth(div_hist, years):
     # Get most recent div
     most_recent_div = div_hist[0]
     most_recent_date = most_recent_div['Date']
-    # Search for dividend years ago
-    target_date = years_ago(years, most_recent_date)
+    # Search for dividend years ago (minus 5 days to try to capture slight differences in date for ex-dividend)
+    target_date = years_ago(years, most_recent_date) - datetime.timedelta(days=-5)
     for div in div_hist:
         div_date = div['Date']
         if div_date <= target_date:

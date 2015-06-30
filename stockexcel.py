@@ -11,14 +11,12 @@ import stockanalysis
 def create_div_achievers_list(use_saved_snp=False):
     snp = []
     if use_saved_snp == True:
-        snplist = stockdatabase.get_pickled_snp_500_list()
         snp = stockdatabase.get_pickle_stock_data()
 
     if snp == []:
-        snplist = stockdatabase.get_wikipedia_snp500_list()
+        snplist = stockdatabase.get_snp500_list()
         snp = yahoostockdata.get_combined_data(snplist)
         # save most recent for next time
-        stockdatabase.pickle_snp_500_list(snplist)
         stockdatabase.pickle_stock_data(snp)
 
     stockanalysis.analyze_data(snp)
@@ -116,7 +114,6 @@ def create_stock_list_worksheet(data):
     add_column(div_achievers, 'Adjusted Div:', 'AdjustedDividend', dollar_format)
     add_column(div_achievers, 'Div Warn:', 'PayoutRatioWarning')
     add_column(div_achievers, 'Years of Divs', 'YearsOfDividends')
-    add_column(div_achievers, 'Start Growth', 'DividendGrowthStartDate', date_format)
     add_column(div_achievers, 'Length Growth', 'YearsOfDividendGrowth')
     add_column(div_achievers, 'Total Growth', 'TotalDividendGrowth', percent_format)
     #add_column(div_achievers, '20 Years', 'DividendGrowth20', percent_format)

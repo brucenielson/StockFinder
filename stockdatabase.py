@@ -77,6 +77,18 @@ def get_pickled_list(list_name):
     return sl
 
 
+def pickle_list(list_data, list_name):
+    file_name = os.path.dirname(__file__)+"\\" + str(list_name) + '.txt'
+    try:
+        os.remove(file_name)
+    except:
+        pass
+
+    f = open(os.path.dirname(__file__)+"\\" + str(list_name) + '.txt', 'w')
+    pickle.dump(list_data, f)
+    f.close()
+
+
 
 def get_web_stock_list(url, xpath, list_name=None):
     # Stores the current time, for the created_at record
@@ -105,15 +117,7 @@ def get_web_stock_list(url, xpath, list_name=None):
     result = [str(item) for item in symbol_list]
     # Pickle result for future retrieval if page can't be reached
     if list_name != None:
-        file_name = os.path.dirname(__file__)+"\\" + str(list_name) + '.txt'
-        try:
-            os.remove(file_name)
-        except:
-            pass
-
-        f = open(os.path.dirname(__file__)+"\\" + str(list_name) + '.txt', 'w')
-        pickle.dump(result, f)
-        f.close()
+        pickle_list(result, list_name)
 
     return result
 
@@ -121,9 +125,7 @@ def get_web_stock_list(url, xpath, list_name=None):
 
 
 
-
-
-def test():
+def sample_code1():
     # https://blog.scraperwiki.com/2011/12/how-to-scrape-and-parse-wikipedia/
     import lxml.etree
     import urllib
@@ -141,38 +143,26 @@ def test():
     print revs[-1].text
 
 
-def pickle_snp_500_list(snplist=None):
-    pass
-    #if snplist == None:
-    #    symbol_list = get_snp500_list()
-    #else:
-    #    symbol_list = snplist
-    #f = open(os.path.dirname(__file__)+"\\"+'snplist.txt', 'w')
-    #pickle.dump(symbol_list, f)
-    #f.close()
-
-
-
-
-def get_pickled_snp_500_list():
-    f = open(os.path.dirname(__file__)+"\\"+'snplist.txt')
-    sl = []
-    sl = pickle.load(f)
-    f.close()
-    return sl
 
 
 
 
 def pickle_stock_data(data):
-    f = open(os.path.dirname(__file__)+"\\"+'snpdata.txt', 'w')
+    file_name = os.path.dirname(__file__)+"\\" + 'stockdata.txt'
+    try:
+        os.remove(file_name)
+    except:
+        pass
+
+    f = open(file_name, 'w')
     pickle.dump(data, f)
     f.close()
 
 
 
 def get_pickle_stock_data():
-    f = open(os.path.dirname(__file__)+"\\"+'snpdata.txt')
+    file_name = os.path.dirname(__file__)+"\\" + 'stockdata.txt'
+    f = open(file_name)
     sl = pickle.load(f)
     f.close()
     return sl

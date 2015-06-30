@@ -19,6 +19,9 @@ htmlcov
 *.msm
 *.msp
 
+# stock data is too big
+stockdata.txt
+
 # Python binaries
 *.pyc
 

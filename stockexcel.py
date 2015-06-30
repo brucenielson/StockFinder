@@ -37,10 +37,18 @@ def init_columns():
     column_list = []
 
 
+
+saved_title_format = None
+def set_title_format(title_format):
+    global saved_title_format
+    saved_title_format = title_format
+
+
 def add_column(worksheet, col_name, col_value, format=None):
     # Write Label in first row
-    global column_count
-    worksheet.write(0, column_count, str(col_name)+":")
+    global column_count, saved_title_format
+
+    worksheet.write(0, column_count, str(col_name)+":", saved_title_format)
     column_count += 1
     # Create column list for writing out data
     global column_list
@@ -50,7 +58,7 @@ def add_column(worksheet, col_name, col_value, format=None):
 
 
 
-def get_div_growth_info(data):
+def get_stock_target_analysis(data):
     for symbol in data.keys():
         stock = data[symbol]
         stock['CalcYield'] = float(stock['DividendShare']) / float(stock['LastTradePriceOnly'])
@@ -71,14 +79,27 @@ def get_div_growth_info(data):
             else:
                 projected_growth = recent_growth
 
+            # Find Adjusted Dividend
+
+            max_div = max([0, stock['EarningsShare']]) * 0.6 # 60% payout ratio
+            stock['AdjustedDividend'] = min([max_div, stock['DividendShare']])
+            stock['PayoutRatioWarning'] = (stock['AdjustedDividend'] < stock['DividendShare'])
+
+            # Work out projected Dividend
             stock['ProjectedGrowth'] = projected_growth
             stock['ProjectedDividend'] = projected_div = float(stock['DividendShare']) + (float(stock['DividendShare']) * projected_growth) * 5
             stock['ProjectedRate'] = projected_div / stock['LastTradePriceOnly']
 
-            # Find Adjusted Dividend
-            max_div = max([0, stock['EarningsShare']]) * 0.6
-            stock['AdjustedDividend'] = min([max_div, stock['DividendShare']])
-            stock['PayoutRatioWarning'] = (stock['AdjustedDividend'] < stock['DividendShare'])
+            # Is dividend under earnings pressure? If so, find adjusted dividend growth also
+            stock['ProjectedDividendAdjusted'] = projected_div_adj = float(stock['AdjustedDividend']) + (float(stock['AdjustedDividend']  * projected_growth) * 5)
+            stock['ProjectedRateAdjusted'] = projected_div_adj / stock['LastTradePriceOnly']
+
+
+            # Find suggested purchase price
+            # We want a dividend that is making at least 5% in 5 years
+            stock['TargetPrice'] = min([stock['LastTradePriceOnly'], projected_div_adj / .05])
+            stock['PercentToTarget'] = (stock['LastTradePriceOnly'] - stock['TargetPrice']) / stock['LastTradePriceOnly']
+
 
 
 
@@ -93,13 +114,13 @@ def create_stock_list_worksheet(data):
 
     # Create formats
     title_format = book.add_format({'bold': True})
-    title_format.set_size(18) # size * twips (=20 per point)
+    set_title_format(title_format)
     dollar_format = book.add_format({'num_format': '$#,##0.00'})
     date_format = book.add_format({'num_format': 'dd-mmm-yyyy'})
     percent_format = book.add_format({'num_format': '0.00%'})
 
     #Pre-Process Data
-    get_div_growth_info(data)
+    get_stock_target_analysis(data)
 
     # Create Columns
     init_columns()
@@ -108,27 +129,23 @@ def create_stock_list_worksheet(data):
     add_column(div_achievers, 'Last', 'LastTradePriceOnly', dollar_format)
     add_column(div_achievers, 'High', 'YearHigh', dollar_format)
     add_column(div_achievers, 'Low', 'YearLow', dollar_format)
+    add_column(div_achievers, 'Years of Divs', 'YearsOfDividends')
+    add_column(div_achievers, 'Length Growth', 'YearsOfDividendGrowth')
+    add_column(div_achievers, 'Total Growth', 'TotalDividendGrowth', percent_format)
+    add_column(div_achievers, 'Recent', 'RecentGrowth', percent_format)
+    add_column(div_achievers, 'Projected', 'ProjectedGrowth', percent_format)
     add_column(div_achievers, 'Dividend', 'DividendShare', dollar_format)
     add_column(div_achievers, 'Yield', 'CalcYield', percent_format)
     add_column(div_achievers, 'EPS', 'EarningsShare', dollar_format)
     add_column(div_achievers, 'Adjusted Div:', 'AdjustedDividend', dollar_format)
+    add_column(div_achievers, 'Adjusted Div 5 year', 'ProjectedDividendAdjusted', dollar_format)
+    add_column(div_achievers, 'Adjusted Yield 5 year', 'ProjectedRateAdjusted', percent_format)
     add_column(div_achievers, 'Div Warn:', 'PayoutRatioWarning')
-    add_column(div_achievers, 'Years of Divs', 'YearsOfDividends')
-    add_column(div_achievers, 'Length Growth', 'YearsOfDividendGrowth')
-    add_column(div_achievers, 'Total Growth', 'TotalDividendGrowth', percent_format)
-    #add_column(div_achievers, '20 Years', 'DividendGrowth20', percent_format)
-    #add_column(div_achievers, '15 Years', 'DividendGrowth15', percent_format)
-    #add_column(div_achievers, '10 Years', 'DividendGrowth10', percent_format)
-    #add_column(div_achievers, '5 Years', 'DividendGrowth5', percent_format)
-    #add_column(div_achievers, '3 Years', 'DividendGrowth3', percent_format)
-    #add_column(div_achievers, '1 Year', 'DividendGrowth1', percent_format)
-    add_column(div_achievers, 'Recent', 'RecentGrowth', percent_format)
-    add_column(div_achievers, 'Projected', 'ProjectedGrowth', percent_format)
-    add_column(div_achievers, 'Projected Div 5 year', 'ProjectedDividend', dollar_format)
-    add_column(div_achievers, 'Projected Yield 5 year', 'ProjectedRate', percent_format)
+    add_column(div_achievers, 'Target', 'TargetPrice', dollar_format)
+    add_column(div_achievers, 'Target%', 'PercentToTarget', percent_format)
 
     # Create sort order by projected yield
-    sort_order = create_sort_list(data, 'ProjectedRate')
+    sort_order = create_sort_list(data, 'ProjectedRateAdjusted')
 
     # Write out the sheet
     create_sheet(div_achievers, data, sort_order)

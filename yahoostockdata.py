@@ -294,7 +294,9 @@ def standardize_data(data, fields):
             # if item is a date
             elif item in ['Ex_DividendDate', 'start', 'DividendDate', 'ExDividendDate', 'DividendPayDate', 'LastTradeDate', 'TradeDate']:
 
-                if value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
+                if type(value) == datetime.datetime:
+                    pass
+                elif value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
                     data[row][item] = None
                 else:
                     if isinstance(data[row][item], datetime.datetime):
@@ -410,18 +412,21 @@ def _convert_to_float(value):
 # Attempt to convert value to a date format or else raise a
 # ValueError exception
 def _convert_to_date(value):
-    if value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
+    if type(value) == datetime.datetime:
+        return value
+    elif value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
         return None
     else:
         try:
             return datetime.datetime.strptime(value,"%Y-%m-%d")
-        except (ValueError, TypeError):
+        except (ValueError, TypeError) as e:
             try:
                 return datetime.datetime.strptime(value,"%m/%d/%Y")
-            except:
+            except (ValueError, TypeError) as e:
                 try:
                     return datetime.datetime.strptime(value,"%b %d, %Y")
                 except (ValueError, TypeError) as e: # pragma: no cover
+                    print value
                     raise e
 
 
@@ -624,7 +629,10 @@ def format_dividend_history_data(data):
                 row = next(list_iter, "eof")
 
             # sort the list - is this necessary?
-            data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: datetime.datetime.strptime(x['Date'],"%Y-%m-%d"), reverse=True)
+            try:
+                data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: datetime.datetime.strptime(x['Date'],"%Y-%m-%d"), reverse=True)
+            except TypeError:
+                data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: x['Date'], reverse=True)
 
     return data_dict
 

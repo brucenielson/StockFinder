@@ -129,6 +129,7 @@ class test_yahoo_stock_data(unittest.TestCase):
         if not (success == True and result == result_quote_data_2['AAPL']):
             self.fail("Found 'aapl' instead of 'AAPL'") # pragma: no cover
 
+
         # Setup mocks
         mock_urllib2_urlopen.return_value = "mock file object"
         mock_json_loads.return_value = fake_quote_data_1
@@ -137,6 +138,7 @@ class test_yahoo_stock_data(unittest.TestCase):
         quote_data = get_quote_data("aapl, T, MSFT, GOOG")
 
         self.failIf(quote_data != result_quote_data_1)
+
 
         # straight tests
         result = yahoostockdata._process_symbol_list(["aapl, T, MSFT, goog"])

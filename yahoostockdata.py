@@ -6,7 +6,9 @@ import urllib2
 import json
 import datetime
 import time
-
+import os
+import csv
+import copy
 
 __author__ = 'Bruce Nielson'
 
@@ -55,6 +57,65 @@ def _process_symbol_list(symbol_list):
     symbol_list = [symbol.upper() for symbol in symbol_list]
 
     return symbol_list
+
+
+
+# Load from CSV file all the data types yahoo will return
+# So that its easy to build a dictionary for quotes
+def load_yahoo_attributes():
+    with open(os.path.dirname(__file__)+'\\yahooattributes.csv', 'rb') as f:
+        reader = csv.reader(f)
+        attributes = []
+        for row in reader:
+            attributes.append(row)
+
+    return attributes
+
+
+def list_to_str(li, include_comma=True):
+    s = ""
+    for item in li:
+        if s == "":
+            s = str(item)
+        else:
+            if (include_comma):
+                s = s + "," + str(item)
+            else:
+                s = s + str(item)
+
+    return s
+
+# An alternative approach that might be faster?
+def download_yahoo_quote_data(symbol_list):
+    #url = "http://ichart.finance.yahoo.com/table.csv?s=AAPL&amp;d=1&amp;e=1&amp;f=2014&amp;g=d&amp;a=8&amp;b=7&amp;c=1984&amp;ignore=.csv" # Historical stock prices!
+
+    # Get yahoo attributes dictionary
+    attribute_list = load_yahoo_attributes()
+    code_list = [row[2].strip("0") for row in attribute_list]
+    attributes_str = list_to_str(code_list, False)
+    attributes = [attribute[0] for attribute in attribute_list]
+
+    #Convert symbol list to CSV
+    sl = list_to_str(symbol_list)
+
+    # Get Yahoo Financial Data
+    url = "http://download.finance.yahoo.com/d/quotes.csv?s="+sl+"&f="+attributes_str+"=.csv"
+    response = urllib2.urlopen(url)
+    data = csv.reader(response)
+
+    # Convert to dictionary in standard format
+    stock_data = [row for row in data]
+
+    result = {}
+    for stock in stock_data:
+        result[stock[0]] = {}
+        for i in range(0,len(attribute_list)):
+            value = {attribute_list[i][0]: stock[i]}
+            result[stock[0]].update(value)
+
+
+    return standardize_data(result, attributes)
+
 
 
 
@@ -123,7 +184,7 @@ def get_dividend_history_data(symbol_list):
 
 
 
-def get_quote_data(symbol_list):
+def get_quote_data(symbol_list, test=False):
     """
     get_quote_data() takes a symbol list and returns Quote table data for storing
     in the database.
@@ -172,7 +233,14 @@ def get_quote_data(symbol_list):
 # i.e. "N/A" = 0.00 for a dividend, etc. This function can take any data
 # set (quote, stock, key_stats) except Dividend History.
 def standardize_data(data, fields):
-    all_fields = fields.split(", ")
+
+    if type(fields) == type(str()):
+        all_fields = fields.split(", ")
+    elif type(fields) == type(list()):
+        all_fields = fields
+    else:
+        raise Exception("List of fields must be csv string or list")
+
     for row in data:
         for item in all_fields:
 
@@ -180,16 +248,21 @@ def standardize_data(data, fields):
             if item not in data[row]:
                 data[row][item] = None
 
+            value = data[row][item]
+
+
+            if value == None or value == "N/A" or value == "None":
+                data[row][item] = None
+
             #if item is dollar, integer or decimal
-            if item in ['LastTradePriceOnly', 'YearLow', 'YearHigh', 'DividendShare', 'EarningsShare',\
+            elif item in ['LastTradePriceOnly', 'YearLow', 'YearHigh', 'DividendShare', 'EarningsShare',\
                         'PERatio', 'PriceSales', 'PEGRatio', 'ShortRatio', 'BookValue', 'PriceBookTotalDebt', \
                         'ReturnOnEquity', 'TrailingPE', 'RevenuePerShare', 'MarketCap','PriceBook', 'EBITDA', \
                         'OperatingCashFlow', 'Beta', 'ReturnonAssests', 'ForwardAnnualDividendRate', \
                         'SharesShort', 'CurrentRatio', 'BookValuePerShare', 'TotalCashPerShare', 'TotalCash', \
                         'Revenue', 'ForwardPE', 'DilutedEPS', 'SharesOutstanding', 'TotalDebtEquity', \
-                        'FullTimeEmployees', 'TotalDebt']:
+                        'FullTimeEmployees', 'TotalDebt', 'MarketCapitalization']:
 
-                value = data[row][item]
                 if type(value) == type(float()):
                     pass
                 else:
@@ -199,7 +272,6 @@ def standardize_data(data, fields):
                         raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
 
 
-                value = data[row][item]
                 value = str(value).replace(",","")
 
 
@@ -220,8 +292,7 @@ def standardize_data(data, fields):
 
 
             # if item is a date
-            elif item in ['Ex_DividendDate', 'start', 'DividendDate']:
-                value = data[row][item]
+            elif item in ['Ex_DividendDate', 'start', 'DividendDate', 'ExDividendDate', 'DividendPayDate', 'LastTradeDate', 'TradeDate']:
 
                 if value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
                     data[row][item] = None
@@ -232,23 +303,29 @@ def standardize_data(data, fields):
                         try:
                             data[row][item] = _convert_to_date(data[row][item])
                         except (TypeError, ValueError) as e: # pragma: no cover
-                            raise e("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
+                            raise Exception("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
             # if item is a percentage
-            elif item in ['QtrlyEarningsGrowth', 'PayoutRatio', 'ProfitMargin', 'TrailingAnnualDividendYield',\
-                        'ForwardAnnualDividendYield', 'p_5YearAverageDividentYield', 'OperatingMargin']:
-
-                value = data[row][item]
+            elif item[:7] == 'Percent' or item[-7:] == "Percent" or (value == type(str()) and value[-1:] == "%"):
 
                 if type(value) == type(float()):
                     pass
-                elif value == "N/A" or value == None or value == "None":
-                    data[row][item] = 0.0
+                #elif value == "N/A" or value == None or value == "None":
+                #    data[row][item] = 0.0
                 else:
                     try:
                         data[row][item] = float(value.strip('%').replace(",","")) / 100.0
-                    except (TypeError, ValueError) as e: # pragma: no cover
-                        raise e("For "+row+", "+item+": "+value+" is not a valid value.")
+                    except (TypeError, ValueError): # pragma: no cover
+                        pass
+
+            else:
+                # Try other conversions
+                try:
+                    data[row][item] = _convert_to_float(value)
+                except (TypeError, ValueError): # pragma: no cover
+                    pass
+
+
 
     return data
 
@@ -288,7 +365,7 @@ def standardize_dividend_history_data(div_history_data, fields):
                         try:
                             div[field] = _convert_to_date(div[field])
                         except ValueError: # pragma: no cover
-                            raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD.")
+                            raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD or MM/DD/YYYY.")
 
     div_list = []
     for symbol in div_history_data:
@@ -310,6 +387,8 @@ def _convert_to_float(value):
 
     if value == "N/A" or value == None or value == "None":
         return 0.00
+    elif value[-1:] == "%":
+        return float(value.strip('%').replace(",","")) / 100.0
     elif type(value) == type(float):
         return float(value)
     elif _is_number(value):
@@ -338,9 +417,12 @@ def _convert_to_date(value):
             return datetime.datetime.strptime(value,"%Y-%m-%d")
         except (ValueError, TypeError):
             try:
-                return datetime.datetime.strptime(value,"%b %d, %Y")
-            except (ValueError, TypeError) as e: # pragma: no cover
-                raise e
+                return datetime.datetime.strptime(value,"%m/%d/%Y")
+            except:
+                try:
+                    return datetime.datetime.strptime(value,"%b %d, %Y")
+                except (ValueError, TypeError) as e: # pragma: no cover
+                    raise e
 
 
 
@@ -363,7 +445,6 @@ def _is_number(s):
         pass
 
     return False
-
 
 
 
@@ -418,6 +499,7 @@ def execute_yql(yql):
         result = json.loads("")
     else:
         result = json.loads(result.read()) # pragma: no cover
+
     #print result
 
     json_data = result['query']['results']
@@ -781,6 +863,7 @@ def create_test_data(): # pragma: no cover
     sl = ['aapl']
     data['q2r'] = get_quote_data(sl)
     data['q2t'] = create_fake_data(quote_yql(sl))
+
     print "completed quote..."
     data['s2r'] = get_stock_data(sl)
     data['s2t'] = create_fake_data(stock_yql(sl))

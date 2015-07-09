@@ -41,6 +41,43 @@ def create_database(database_name = "stocksdata.db"):
 
 
 
+def get_cef_dividend_info(cef_symbol):
+    if cef_symbol not in get_cef_list(True):
+        raise Exception('Ticker symbol passed was not a CEF')
+
+    #header_list = get_web_stock_list('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr[1]/th/text()')
+    header_list = ['Ex-Date', 'NAV at Distribution', 'Long-Term Capital Gains', 'Short-Term Capital Gains', 'Dividend Income', 'Return of Capital', 'Distribution Total']
+    num_headers = len(header_list)
+
+    # Run through each column
+    table_data = get_web_stock_list('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
+    data_size = len(table_data)
+
+    if data_size % num_headers != 0:
+        raise Exception('Data in table does not match expected number of columns')
+
+    i = 0
+    row = 0
+    result = []
+    while i < data_size:
+        # fill in one row
+        result.append({})
+        for j in range(0,num_headers):
+            result[row][header_list[j]] = table_data[i+j]
+        row += 1
+        i += num_headers
+
+    return result
+
+
+
+import BeautifulSoup
+def get_tables(htmldoc):
+    soup = BeautifulSoup.BeautifulSoup(htmldoc)
+    return soup
+
+
+
 
 def get_mlp_list(get_local=False):
     if get_local == True:
@@ -108,11 +145,13 @@ def get_web_stock_list(url, xpath, list_name=None):
             symbol_list = root.xpath(xpath)
         except:
             # both ways failed, so load from pickle
-            f = open(os.path.dirname(__file__)+"\\" + str(list_name) + '.txt')
-            symbol_list = []
-            symbol_list = pickle.load(f)
-            f.close()
-
+            if list_name != None:
+                f = open(os.path.dirname(__file__)+"\\" + str(list_name) + '.txt')
+                symbol_list = []
+                symbol_list = pickle.load(f)
+                f.close()
+            else:
+                raise Exception('Failed to load list.')
 
     result = [str(item) for item in symbol_list]
     # Pickle result for future retrieval if page can't be reached

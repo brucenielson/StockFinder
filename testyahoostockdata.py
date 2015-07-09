@@ -149,6 +149,8 @@ class test_yahoo_stock_data(unittest.TestCase):
         self.failIf(result != correct)
 
 
+
+
     #Unit Test get_stock_data
     @mock.patch('yahoostockdata.urllib2.urlopen')
     @mock.patch('yahoostockdata.json.loads')
@@ -208,6 +210,7 @@ class test_yahoo_stock_data(unittest.TestCase):
         #is_equal(data, result_div_hist_data_1)
 
         self.failIf(data != result_div_hist_data_1)
+
 
         # Test WMT, which shouldn't be there
         found = True

@@ -361,7 +361,7 @@ def standardize_dividend_history_data(div_history_data, fields):
 
                 # if item is a date
                 if field in ['Date']:
-                    if type(div[field]) == type(datetime.datetime):
+                    if type(div[field]) == datetime.datetime:
                         pass
                     else:
                         try:

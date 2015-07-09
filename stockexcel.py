@@ -27,6 +27,21 @@ def create_div_achievers_list(use_saved_snp=False):
 
 
 
+def create_custom_stock_list(list=None):
+    if list == None:
+        # Load from disk
+        pass
+
+    data = yahoostockdata.get_combined_data(list)
+
+    stockanalysis.analyze_data(data)
+    create_stock_list_worksheet(data)
+
+    return data
+
+
+
+
 column_count = 0
 column_list = []
 
@@ -99,6 +114,7 @@ def get_stock_target_analysis(data):
             # We want a dividend that is making at least 5% in 5 years
             stock['TargetPrice'] = min([stock['LastTradePriceOnly'], projected_div_adj / .05])
             stock['PercentToTarget'] = (stock['LastTradePriceOnly'] - stock['TargetPrice']) / stock['LastTradePriceOnly']
+
 
 
 

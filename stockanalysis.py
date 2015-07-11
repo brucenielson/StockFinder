@@ -411,17 +411,19 @@ def cef_distribution_analysis(data):
         if stock['Distributions'] == []:
             stock['Distributions'] = "N/A"
         else:
-            dist_per_year = calculate_return_of_capital_totals(stock['Distributions'])
-        stock['DistributionTotals'] = dist_per_year
+            calculate_return_of_capital_totals(stock)
 
 
 
 
-def calculate_return_of_capital_totals(distributions):
+def calculate_return_of_capital_totals(stock):
+    distributions = stock['Distributions']
     current_year = datetime.datetime.now().year
     last_index = len(distributions)-1
     start_div_date = distributions[last_index]['Ex-Date']
     start_year =  start_div_date.year
+    grand_total = 0
+    total_roc = 0
 
     dist_per_year = []
     if start_year < current_year:
@@ -433,9 +435,23 @@ def calculate_return_of_capital_totals(distributions):
             total = income + capital_gains + return_of_capital
             if abs(total_check - total) > 0.001:
                 raise Exception("Totals do not match for " +str(distributions[0]['Symbol'])+ ". From Website: " + str(total_check) + ". Our Calculations: " + str(total))
-            dist_per_year.append((year, total, income, capital_gains, return_of_capital))
 
-    return dist_per_year
+            if total > 0.0:
+                perc_roc = return_of_capital / total
+            else:
+                perc_roc = "N/A"
+
+            dist_per_year.append((year, {'total', total}, {'income': income}, {'capital gains': capital_gains}, {'return of capital': return_of_capital}, {'PercentReturnOfCapital':perc_roc}))
+            grand_total += total
+            total_roc += return_of_capital
+
+    if grand_total > 0.0:
+        total_perc_roc = total_roc / grand_total
+    else:
+        total_perc_roc = "N/A"
+
+    stock['TotalPercentRoC'] = total_perc_roc
+    stock['DistributionYearTotals'] = dist_per_year
 
 
 

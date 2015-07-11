@@ -29,7 +29,7 @@ def create_div_achievers_list(use_saved_snp=False):
     return div_achievers_10
 
 
-
+inspect_cef = []
 
 def create_cef_report(use_saved_cef=False):
     cef = []
@@ -44,6 +44,8 @@ def create_cef_report(use_saved_cef=False):
 
     #Pre-Process Data
     stockanalysis.analyze_data(cef)
+    global inspect_cef
+    inspect_cef = cef
     stockanalysis.cef_distribution_analysis(cef)
 
     #div_achievers_10 = stockanalysis.get_div_acheivers(snp, 10)

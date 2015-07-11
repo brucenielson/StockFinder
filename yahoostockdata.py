@@ -724,6 +724,7 @@ def _safe_get_data(function, symbol_list):
     final = {}
 
     attempt = 1
+    max_attempts = 15
     while len(remaining_symbols) > 0:
         result = function(remaining_symbols)
         if len(result) > 0:
@@ -733,8 +734,10 @@ def _safe_get_data(function, symbol_list):
         else:
             remaining_count = len(remaining_symbols)
             perc_remaining = float(remaining_count) / float(starting_count)
-            if perc_remaining > 0.15: max_atempts = 15
-            else: max_attempts = 3
+            if perc_remaining > 0.15:
+                max_attempts = 15
+            else:
+                max_attempts = 3
 
             if attempt  > max_attempts:
                 print "Giving up with " + str(len(remaining_symbols)) + " remaining."

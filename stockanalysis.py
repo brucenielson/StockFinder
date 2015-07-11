@@ -402,6 +402,9 @@ def cef_distribution_analysis(data):
         print str(symbol) + " - " + str(i)
         stock = data[symbol]
 
+        if 'DividendShare' in stock and stock['DividendShare'] != None:
+            stock['CalcYield'] = float(stock['DividendShare']) / float(stock['LastTradePriceOnly'])
+
         # Get distribution / dividend info from Fidelity.com
         try:
             stock['Distributions'] = stockdatabase.get_cef_dividend_info(symbol)
@@ -419,7 +422,7 @@ def cef_distribution_analysis(data):
 
 def calculate_return_of_capital_totals(stock):
     distributions = stock['Distributions']
-    if distributions == "Failed to Load":
+    if str(distributions) == "Failed To Load":
         return
 
     current_year = datetime.datetime.now().year

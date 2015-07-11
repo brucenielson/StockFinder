@@ -54,8 +54,12 @@ def create_cef_report(use_saved_cef=False):
     stockanalysis.analyze_data(cef)
     stockanalysis.cef_distribution_analysis(cef)
 
+    # TODO: Get rid of "N/A"s for return of capital before doing all the work
+    # TODO: Why does PDI get the wrong number of years of growth?
+    # PDI	PIMCO Dynamic Income Fund Commo	Years of Divs: 2.995208761	Years of Growth: 2.491444216 (They should be equal I think)
+
     #div_achievers_10 = stockanalysis.get_div_acheivers(snp, 10)
-    #create_stock_list_worksheet(div_achievers_10)
+    create_cef_list_worksheet(cef)
 
     return cef
 
@@ -107,13 +111,61 @@ def add_column(worksheet, col_name, col_value, format=None):
 
 
 
+def create_cef_list_worksheet(data):
+    # Create workbook
+    current_date = datetime.datetime.now()
+    today_str = current_date.strftime('%Y-%b-%d')
+    book = xlsxwriter.Workbook(os.path.dirname(__file__)+"\\spreadsheets\\CEF List "+today_str+".xlsx")
+
+    # Create worksheet with list of dividend stocks with at least 10 years of history
+    cef_report = book.add_worksheet("CEF Report")
+
+    # Create formats
+    title_format = book.add_format({'bold': True})
+    set_title_format(title_format)
+    dollar_format = book.add_format({'num_format': '$#,##0.00'})
+    date_format = book.add_format({'num_format': 'dd-mmm-yyyy'})
+    percent_format = book.add_format({'num_format': '0.00%'})
+
+    # Create Columns
+    init_columns()
+    add_column(cef_report, 'Symbol', 'symbol')
+    add_column(cef_report, 'Name', 'Name')
+    add_column(cef_report, 'Last', 'LastTradePriceOnly', dollar_format)
+    add_column(cef_report, 'High', 'YearHigh', dollar_format)
+    add_column(cef_report, 'Low', 'YearLow', dollar_format)
+    add_column(cef_report, 'Years of Divs', 'YearsOfDividends')
+    add_column(cef_report, 'Length Growth', 'YearsOfDividendGrowth')
+    add_column(cef_report, 'Start Date', 'DividendGrowthStartDate')
+    add_column(cef_report, 'Recent', 'RecentGrowth', percent_format)
+    add_column(cef_report, 'Dividend', 'DividendShare', dollar_format)
+    add_column(cef_report, 'Yield', 'CalcYield', percent_format)
+    add_column(cef_report, 'EPS', 'EarningsShare', dollar_format)
+    add_column(cef_report, '% Return of Capital:', 'TotalPercentRoC', percent_format)
+
+
+    # Create sort order by projected yield
+    for symbol in data:
+        if 'TotalPercentRoC' not in data[symbol]:
+            data[symbol]['TotalPercentRoC'] = "N/A"
+
+    sort_order = create_sort_list(data, 'TotalPercentRoC')
+
+    # Write out the sheet
+    create_sheet(cef_report, data, sort_order)
+
+    # Create Excel workbook
+    book.close()
+
+
+
 
 
 def create_stock_list_worksheet(data):
     # Create workbook
     current_date = datetime.datetime.now()
     today_str = current_date.strftime('%Y-%b-%d')
-    book = xlsxwriter.Workbook(os.path.dirname(__file__)+"\\spreadsheets\\stocklist"+today_str+".xlsx")
+    book = xlsxwriter.Workbook(os.path.dirname(__file__)+"\\spreadsheets\\Stock List "+today_str+".xlsx")
 
     # Create worksheet with list of dividend stocks with at least 10 years of history
     div_achievers = book.add_worksheet("Dividend Achievers")
@@ -182,7 +234,11 @@ def create_sheet(worksheet, data, sort_order=None):
         j = 0
         for column in column_list:
             if column[0] in stock:
-                worksheet.write(i, j, stock[column[0]], column[1])
+                # Strings (even ticker symbols) with NAN or INF are considered Not a Number and Infinity for Excel writer, so make sure they are strings when writing out
+                if str(stock[column[0]]).upper() == "NAN" or str(stock[column[0]]).upper() == "INF":
+                    worksheet.write(i, j, str(stock[column[0]]), column[1])
+                else:
+                    worksheet.write(i, j, stock[column[0]], column[1])
             j += 1
         i+=1
 

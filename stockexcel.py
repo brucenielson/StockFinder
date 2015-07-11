@@ -7,7 +7,7 @@ import stockdatabase
 import stockanalysis
 
 
-
+inspect_snp = []
 def create_div_achievers_list(use_saved_snp=False):
     snp = []
     if use_saved_snp == True:
@@ -19,6 +19,9 @@ def create_div_achievers_list(use_saved_snp=False):
         # save most recent for next time
         stockdatabase.pickle_stock_data(snp)
 
+    global inspect_snp
+    inspect_snp = snp
+
     #Pre-Process Data
     stockanalysis.analyze_data(snp)
     stockanalysis.get_stock_target_analysis(snp)
@@ -29,8 +32,9 @@ def create_div_achievers_list(use_saved_snp=False):
     return div_achievers_10
 
 
-inspect_cef = []
 
+
+inspect_cef = []
 def create_cef_report(use_saved_cef=False):
     cef = []
     if use_saved_cef == True:
@@ -42,10 +46,12 @@ def create_cef_report(use_saved_cef=False):
         # save most recent for next time
         stockdatabase.pickle_stock_data(cef)
 
-    #Pre-Process Data
-    stockanalysis.analyze_data(cef)
+
     global inspect_cef
     inspect_cef = cef
+
+    #Pre-Process Data
+    stockanalysis.analyze_data(cef)
     stockanalysis.cef_distribution_analysis(cef)
 
     #div_achievers_10 = stockanalysis.get_div_acheivers(snp, 10)

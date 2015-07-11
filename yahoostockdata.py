@@ -720,15 +720,31 @@ def _safe_get_data(function, symbol_list):
     # make a copy of the list so that we can re-run yql until we get the full list
     remaining_symbols = symbol_list[:]
     remaining_symbols = [symbol.upper() for symbol in remaining_symbols]
+    starting_count = len(remaining_symbols)
     final = {}
 
+    attempt = 1
     while len(remaining_symbols) > 0:
         result = function(remaining_symbols)
         if len(result) > 0:
             remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
+            final = dict(final.items() + result.items())
+            attempt = 1
         else:
-            remaining_symbols = {}
-        final = dict(final.items() + result.items())
+            remaining_count = len(remaining_symbols)
+            perc_remaining = float(remaining_count) / float(starting_count)
+            if perc_remaining > 0.15: max_atempts = 15
+            else: max_attempts = 3
+
+            if attempt  > max_attempts:
+                print "Giving up with " + str(len(remaining_symbols)) + " remaining."
+                remaining_symbols = {}
+            else:
+                print "Remaining Symbols: " + str(len(remaining_symbols))
+                print "Failed Attempt: " + str(attempt)
+                time.sleep(attempt)
+                attempt += 1
+                print "Trying Again. Attempt " + str(attempt)
 
     return final
 

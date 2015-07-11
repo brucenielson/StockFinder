@@ -276,8 +276,9 @@ def find_start_of_div_growth(div_hist, tot_divs_per_year=[], start=0):
     last_index = len(div_hist)-1
 
     # Now find last dividend of growth within restricted range
-    if start >= last_index:
-        raise Exception("Start must not be less than length remaining to search.")
+    if start > last_index:
+        symbol = div_hist[0]['Symbol']
+        raise Exception("Start ("+str(start)+") must not be less than length remaining ("+str(last_index)+") to search for stock: " + str(symbol))
     for i in range(start, last_index): #We don't compare last element to the one before it because it doens't have one before it
         if not(div_hist[i]['Dividends'] >= div_hist[i+1]['Dividends']):
             # We just found where dividend growth (or stability) ended
@@ -418,6 +419,9 @@ def cef_distribution_analysis(data):
 
 def calculate_return_of_capital_totals(stock):
     distributions = stock['Distributions']
+    if distributions == "Failed to Load":
+        return
+
     current_year = datetime.datetime.now().year
     last_index = len(distributions)-1
     start_div_date = distributions[last_index]['Ex-Date']
@@ -441,7 +445,13 @@ def calculate_return_of_capital_totals(stock):
             else:
                 perc_roc = "N/A"
 
-            dist_per_year.append((year, {'total', total}, {'income': income}, {'capital gains': capital_gains}, {'return of capital': return_of_capital}, {'PercentReturnOfCapital':perc_roc}))
+            row = {}
+            row[year] = {'total', total}
+            row[year] = {'income': income}
+            row[year] = {'capital gains': capital_gains}
+            row[year] = {'return of capital': return_of_capital}
+            row[year] = {'PercentReturnOfCapital':perc_roc}
+            dist_per_year.append(row)
             grand_total += total
             total_roc += return_of_capital
 

@@ -219,10 +219,14 @@ def create_div_totals_by_year(div_hist):
 
     return divs_per_year
 
+
+
 def get_trailing_dividend(div_hist):
     #start_date = div_hist[0]['Date']
     #end_date = start_date.replace(year=start_date.year - 1)
     pass
+
+
 
 
 def find_start_of_div_growth(div_hist, tot_divs_per_year=[], start=0):
@@ -338,6 +342,104 @@ def is_dividend_stock(stock_data_row):
             paid_recent = True
 
     return has_div_hist and paid_recent
+
+
+
+
+def get_stock_target_analysis(data):
+    for symbol in data.keys():
+        stock = data[symbol]
+
+        if 'DividendShare' in stock and stock['DividendShare'] != None:
+            stock['CalcYield'] = float(stock['DividendShare']) / float(stock['LastTradePriceOnly'])
+
+            if 'YearsOfDividendGrowth' in stock and stock['YearsOfDividendGrowth'] >= 1.0:
+                stock['MostRecentDiv'] = most_recent_div = stock['DividendHistory'][0]
+                div_growth_start_div = stock['FirstDividendGrowth']
+                stock['TotalDivenendGrowth'] = total_div_growth_amt = float(most_recent_div['Dividends']) - float(div_growth_start_div['Dividends'])
+                stock['TotalDividendGrowthRate'] = total_div_growth_rate = total_div_growth_amt / float(div_growth_start_div['Dividends'])
+                recent_growth = stock['RecentGrowth']
+
+                # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
+                if 'DividendGrowth3' in stock and 'DividendGrowth1' in stock and stock['DividendGrowth3'] > stock['DividendGrowth1']:
+                    diff = stock['DividendGrowth3'] - stock['DividendGrowth1']
+                    projected_growth = recent_growth - diff
+                    if projected_growth < 0.0:
+                        projected_growth = 0.0
+                else:
+                    projected_growth = recent_growth
+
+                # Find Adjusted Dividend
+
+                max_div = max([0, stock['EarningsShare']]) * 0.6 # 60% payout ratio
+                stock['AdjustedDividend'] = min([max_div, stock['DividendShare']])
+                stock['PayoutRatioWarning'] = (stock['AdjustedDividend'] < stock['DividendShare'])
+
+                # Work out projected Dividend
+                stock['ProjectedGrowth'] = projected_growth
+                stock['ProjectedDividend'] = projected_div = float(stock['DividendShare']) + (float(stock['DividendShare']) * projected_growth) * 5
+                stock['ProjectedRate'] = projected_div / stock['LastTradePriceOnly']
+
+                # Is dividend under earnings pressure? If so, find adjusted dividend growth also
+                stock['ProjectedDividendAdjusted'] = projected_div_adj = float(stock['AdjustedDividend']) + (float(stock['AdjustedDividend']  * projected_growth) * 5)
+                stock['ProjectedRateAdjusted'] = projected_div_adj / stock['LastTradePriceOnly']
+
+
+                # Find suggested purchase price
+                # We want a dividend that is making at least 5% in 5 years
+                stock['TargetPrice'] = min([stock['LastTradePriceOnly'], projected_div_adj / .05])
+                stock['PercentToTarget'] = (stock['LastTradePriceOnly'] - stock['TargetPrice']) / stock['LastTradePriceOnly']
+
+
+
+
+
+def cef_distribution_analysis(data):
+    i = 0
+    for symbol in data.keys():
+        i+=1
+        print str(symbol) + " - " + str(i)
+        stock = data[symbol]
+
+        # Get distribution / dividend info from Fidelity.com
+        try:
+            stock['Distributions'] = stockdatabase.get_cef_dividend_info(symbol)
+        except:
+            stock['Distributions'] = "Failed To Load"
+
+        # Now analyze results: Calculate % return of capital for available years and for total of all available years
+        if stock['Distributions'] == []:
+            stock['Distributions'] = "N/A"
+        else:
+            dist_per_year = calculate_return_of_capital_totals(stock['Distributions'])
+        stock['DistributionTotals'] = dist_per_year
+
+
+
+
+def calculate_return_of_capital_totals(distributions):
+    current_year = datetime.datetime.now().year
+    last_index = len(distributions)-1
+    start_div_date = distributions[last_index]['Ex-Date']
+    start_year =  start_div_date.year
+
+    dist_per_year = []
+    if start_year < current_year:
+        for year in list(reversed(range(start_year, current_year+1))):
+            total_check = sum([div['Distribution Total'] for div in distributions if div['Ex-Date'].year == year])
+            income = sum([div['Dividend Income'] for div in distributions if div['Ex-Date'].year == year])
+            capital_gains = sum([div['Short-Term Capital Gains'] + div['Long-Term Capital Gains'] for div in distributions if div['Ex-Date'].year == year])
+            return_of_capital = sum([div['Return of Capital'] for div in distributions if div['Ex-Date'].year == year])
+            total = income + capital_gains + return_of_capital
+            if abs(total_check - total) > 0.001:
+                raise Exception("Totals do not match for " +str(distributions[0]['Symbol'])+ ". From Website: " + str(total_check) + ". Our Calculations: " + str(total))
+            dist_per_year.append((year, total, income, capital_gains, return_of_capital))
+
+    return dist_per_year
+
+
+
+
 
 
 

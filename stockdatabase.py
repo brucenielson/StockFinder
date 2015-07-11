@@ -2,7 +2,7 @@ import lxml, lxml.html, requests
 import sqlite3
 import os
 import pickle
-from yahoostockdata import *
+import yahoostockdata
 import datetime
 
 __author__ = 'Bruce Nielson'
@@ -50,7 +50,7 @@ def get_cef_dividend_info(cef_symbol):
     num_headers = len(header_list)
 
     # Run through each column
-    table_data = get_web_stock_list('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
+    table_data = get_web_table_info('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
     data_size = len(table_data)
 
     if data_size % num_headers != 0:
@@ -63,11 +63,20 @@ def get_cef_dividend_info(cef_symbol):
         # fill in one row
         result.append({})
         for j in range(0,num_headers):
-            result[row][header_list[j]] = table_data[i+j]
+            header_label = header_list[j]
+            value = table_data[i+j]
+            if header_label == 'Ex-Date':
+                value = yahoostockdata.convert_to_date(value)
+            else:
+                value = yahoostockdata.convert_to_float(value)
+
+            result[row][header_list[j]] = value
+        result[row]['Symbol'] = cef_symbol
         row += 1
         i += num_headers
 
     return result
+
 
 
 
@@ -83,7 +92,7 @@ def get_mlp_list(get_local=False):
     if get_local == True:
         return get_pickled_list('mlplist')
     else:
-        return get_web_stock_list('http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()', 'mlplist')
+        return get_web_table_info('http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()', 'mlplist')
 
 
 
@@ -91,7 +100,7 @@ def get_cef_list(get_local=False):
     if get_local == True:
         return get_pickled_list('ceflist')
     else:
-        return get_web_stock_list('http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()', 'ceflist')
+        return get_web_table_info('http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()', 'ceflist')
 
 
 
@@ -102,7 +111,7 @@ def get_snp500_list(get_local=False):
     if get_local == True:
         return get_pickled_list('snplist')
     else:
-        return get_web_stock_list('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()', 'snplist')
+        return get_web_table_info('http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()', 'snplist')
 
 
 
@@ -127,7 +136,7 @@ def pickle_list(list_data, list_name):
 
 
 
-def get_web_stock_list(url, xpath, list_name=None):
+def get_web_table_info(url, xpath, file_name=None):
     # Stores the current time, for the created_at record
     now = datetime.datetime.utcnow()
 
@@ -136,27 +145,27 @@ def get_web_stock_list(url, xpath, list_name=None):
         # Try old way
         # Use libxml to download the list of S&P500 companies and obtain the symbol table
         page = lxml.html.parse(url)
-        symbol_list = page.xpath(xpath)
+        result = page.xpath(xpath)
     except:
         try:
             # try the new way
             r = requests.get(url)
             root = lxml.html.fromstring(r.content)
-            symbol_list = root.xpath(xpath)
+            result = root.xpath(xpath)
         except:
             # both ways failed, so load from pickle
-            if list_name != None:
-                f = open(os.path.dirname(__file__)+"\\" + str(list_name) + '.txt')
+            if file_name != None:
+                f = open(os.path.dirname(__file__)+"\\" + str(file_name) + '.txt')
                 symbol_list = []
                 symbol_list = pickle.load(f)
                 f.close()
             else:
                 raise Exception('Failed to load list.')
 
-    result = [str(item) for item in symbol_list]
+    result = [str(item) for item in result]
     # Pickle result for future retrieval if page can't be reached
-    if list_name != None:
-        pickle_list(result, list_name)
+    if file_name != None:
+        pickle_list(result, file_name)
 
     return result
 
@@ -238,8 +247,8 @@ def track_stock_symbols(symbol_list, database = "stocksdata.db"):
         return
 
     # Get data to store for this new symbol
-    stocks_data = get_stock_data(new_symbols)
-    data = get_dividend_history_data(new_symbols)
+    stocks_data = yahoostockdata.get_stock_data(new_symbols)
+    data = yahoostockdata.get_dividend_history_data(new_symbols)
     div_hist_data = data
 
     insert_stocks_list = []
@@ -373,7 +382,7 @@ def store_stock_data(stock_data):
 
     # If it is not already in the database, do an insert.
     # If it is, then do an update.
-    stored_symbols = [row[SYMBOL] for row in db_stock_data]
+    stored_symbols = [row[yahoostockdata.SYMBOL] for row in db_stock_data]
     insert_values = []
     update_values = []
     for symbol in stock_data.keys():

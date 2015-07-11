@@ -267,7 +267,7 @@ def standardize_data(data, fields):
                     pass
                 else:
                     try:
-                        data[row][item] = _convert_to_float(value)
+                        data[row][item] = convert_to_float(value)
                     except ValueError: # pragma: no cover
                         raise Exception("For "+row+", "+item+": "+value+" is not a valid value.")
 
@@ -303,7 +303,7 @@ def standardize_data(data, fields):
                         pass
                     else:
                         try:
-                            data[row][item] = _convert_to_date(data[row][item])
+                            data[row][item] = convert_to_date(data[row][item])
                         except (TypeError, ValueError) as e: # pragma: no cover
                             raise Exception("For "+row+", "+item+": "+value+" Incorrect data format for a date. Should be YYYY-MM-DD.")
 
@@ -323,7 +323,7 @@ def standardize_data(data, fields):
             else:
                 # Try other conversions
                 try:
-                    data[row][item] = _convert_to_float(value)
+                    data[row][item] = convert_to_float(value)
                 except (TypeError, ValueError): # pragma: no cover
                     pass
 
@@ -354,7 +354,7 @@ def standardize_dividend_history_data(div_history_data, fields):
                         pass
                     else:
                         try:
-                            div[field] = _convert_to_float(div[field])
+                            div[field] = convert_to_float(div[field])
                         except ValueError: # pragma: no cover
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" is not a valid value.")
 
@@ -365,7 +365,7 @@ def standardize_dividend_history_data(div_history_data, fields):
                         pass
                     else:
                         try:
-                            div[field] = _convert_to_date(div[field])
+                            div[field] = convert_to_date(div[field])
                         except ValueError: # pragma: no cover
                             raise ValueError("For "+symbol+", "+field+": "+str(div[field])+" Incorrect data format for a date. Should be YYYY-MM-DD or MM/DD/YYYY.")
 
@@ -384,10 +384,10 @@ def standardize_dividend_history_data(div_history_data, fields):
 
 # Attempt to convert value to a float (decimal) format or else raise a
 # ValueError exception
-def _convert_to_float(value):
+def convert_to_float(value):
     value = str(value).replace(",","")
 
-    if value == "N/A" or value == None or value == "None":
+    if value == "N/A" or value == None or value == "None" or value == "--" or value == '-':
         return 0.00
     elif value[-1:] == "%":
         return float(value.strip('%').replace(",","")) / 100.0
@@ -411,7 +411,7 @@ def _convert_to_float(value):
 
 # Attempt to convert value to a date format or else raise a
 # ValueError exception
-def _convert_to_date(value):
+def convert_to_date(value):
     if type(value) == datetime.datetime:
         return value
     elif value == "N/A" or value == None or value == "None" or ((type(value) == type(str()) or type(value) == type(unicode())) and "NaN" in value):
@@ -753,18 +753,18 @@ def get_combined_data(symbol_list):
             if key not in data[symbol]:
                 data[symbol][key] = stocks[symbol][key]
             else:
-                if data[symbol][key] != stocks[symbol][key]:
+                if str(data[symbol][key]) != str(stocks[symbol][key]):
                     raise Exception("Data in Quotes and Stocks does not match: "\
-                                + "Key="+key+"; Value Quotes="+data[symbol][key]+" Value Stocks="+stocks[symbol][key])
+                                + "Key="+str(key)+"; Value Quotes="+str(data[symbol][key])+" Value Stocks="+str(stocks[symbol][key]))
 
         if div_hist != None and symbol in div_hist:
             for key in div_hist[symbol].keys():
                 if key not in data[symbol]:
                     data[symbol][key] = div_hist[symbol][key]
                 else:
-                    if data[symbol][key] != div_hist[symbol][key]:
+                    if str(data[symbol][key]) != str(div_hist[symbol][key]):
                         raise Exception("Data in Quotes and Stocks does not match: "\
-                                    + "Key="+key+"; Value Quotes="+data[symbol][key]+" Value Stocks="+div_hist[symbol][key])
+                                    + "Key="+str(key)+"; Value Quotes="+str(data[symbol][key])+" Value Stocks="+str(div_hist[symbol][key]))
 
     standardize_data(data, ALL_FIELDS)
 

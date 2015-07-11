@@ -19,11 +19,38 @@ def create_div_achievers_list(use_saved_snp=False):
         # save most recent for next time
         stockdatabase.pickle_stock_data(snp)
 
+    #Pre-Process Data
     stockanalysis.analyze_data(snp)
+    stockanalysis.get_stock_target_analysis(snp)
+
     div_achievers_10 = stockanalysis.get_div_acheivers(snp, 10)
     create_stock_list_worksheet(div_achievers_10)
 
     return div_achievers_10
+
+
+
+
+def create_cef_report(use_saved_cef=False):
+    cef = []
+    if use_saved_cef == True:
+        cef = stockdatabase.get_pickle_stock_data()
+
+    if cef == []:
+        ceflist = stockdatabase.get_cef_list()
+        cef = yahoostockdata.get_combined_data(ceflist)
+        # save most recent for next time
+        stockdatabase.pickle_stock_data(cef)
+
+    #Pre-Process Data
+    stockanalysis.analyze_data(cef)
+    stockanalysis.cef_distribution_analysis(cef)
+
+    #div_achievers_10 = stockanalysis.get_div_acheivers(snp, 10)
+    #create_stock_list_worksheet(div_achievers_10)
+
+    return cef
+
 
 
 
@@ -73,51 +100,6 @@ def add_column(worksheet, col_name, col_value, format=None):
 
 
 
-def get_stock_target_analysis(data):
-    for symbol in data.keys():
-        stock = data[symbol]
-        stock['CalcYield'] = float(stock['DividendShare']) / float(stock['LastTradePriceOnly'])
-
-        if stock['YearsOfDividendGrowth'] >= 1.0:
-            stock['MostRecentDiv'] = most_recent_div = stock['DividendHistory'][0]
-            div_growth_start_div = stock['FirstDividendGrowth']
-            stock['TotalDivenendGrowth'] = total_div_growth_amt = float(most_recent_div['Dividends']) - float(div_growth_start_div['Dividends'])
-            stock['TotalDividendGrowthRate'] = total_div_growth_rate = total_div_growth_amt / float(div_growth_start_div['Dividends'])
-            recent_growth = stock['RecentGrowth']
-
-            # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
-            if 'DividendGrowth3' in stock and 'DividendGrowth1' in stock and stock['DividendGrowth3'] > stock['DividendGrowth1']:
-                diff = stock['DividendGrowth3'] - stock['DividendGrowth1']
-                projected_growth = recent_growth - diff
-                if projected_growth < 0.0:
-                    projected_growth = 0.0
-            else:
-                projected_growth = recent_growth
-
-            # Find Adjusted Dividend
-
-            max_div = max([0, stock['EarningsShare']]) * 0.6 # 60% payout ratio
-            stock['AdjustedDividend'] = min([max_div, stock['DividendShare']])
-            stock['PayoutRatioWarning'] = (stock['AdjustedDividend'] < stock['DividendShare'])
-
-            # Work out projected Dividend
-            stock['ProjectedGrowth'] = projected_growth
-            stock['ProjectedDividend'] = projected_div = float(stock['DividendShare']) + (float(stock['DividendShare']) * projected_growth) * 5
-            stock['ProjectedRate'] = projected_div / stock['LastTradePriceOnly']
-
-            # Is dividend under earnings pressure? If so, find adjusted dividend growth also
-            stock['ProjectedDividendAdjusted'] = projected_div_adj = float(stock['AdjustedDividend']) + (float(stock['AdjustedDividend']  * projected_growth) * 5)
-            stock['ProjectedRateAdjusted'] = projected_div_adj / stock['LastTradePriceOnly']
-
-
-            # Find suggested purchase price
-            # We want a dividend that is making at least 5% in 5 years
-            stock['TargetPrice'] = min([stock['LastTradePriceOnly'], projected_div_adj / .05])
-            stock['PercentToTarget'] = (stock['LastTradePriceOnly'] - stock['TargetPrice']) / stock['LastTradePriceOnly']
-
-
-
-
 
 def create_stock_list_worksheet(data):
     # Create workbook
@@ -134,9 +116,6 @@ def create_stock_list_worksheet(data):
     dollar_format = book.add_format({'num_format': '$#,##0.00'})
     date_format = book.add_format({'num_format': 'dd-mmm-yyyy'})
     percent_format = book.add_format({'num_format': '0.00%'})
-
-    #Pre-Process Data
-    get_stock_target_analysis(data)
 
     # Create Columns
     init_columns()

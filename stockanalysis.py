@@ -350,6 +350,7 @@ def is_dividend_stock(stock_data_row):
 def get_stock_target_analysis(data):
     for symbol in data.keys():
         stock = data[symbol]
+        stock['ProjectedRateAdjusted'] = 0.0
 
         if 'DividendShare' in stock and stock['DividendShare'] != None:
             stock['CalcYield'] = float(stock['DividendShare']) / float(stock['LastTradePriceOnly'])

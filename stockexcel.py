@@ -74,6 +74,7 @@ def create_custom_stock_list(list=None):
     data = yahoostockdata.get_combined_data(list)
 
     stockanalysis.analyze_data(data)
+    stockanalysis.get_stock_target_analysis(data)
     create_stock_list_worksheet(data)
 
     return data
@@ -136,7 +137,7 @@ def create_cef_list_worksheet(data):
     add_column(cef_report, 'Low', 'YearLow', dollar_format)
     add_column(cef_report, 'Years of Divs', 'YearsOfDividends')
     add_column(cef_report, 'Length Growth', 'YearsOfDividendGrowth')
-    add_column(cef_report, 'Start Date', 'DividendGrowthStartDate')
+    add_column(cef_report, 'Start Date', 'DividendGrowthStartDate', date_format)
     add_column(cef_report, 'Recent', 'RecentGrowth', percent_format)
     add_column(cef_report, 'Dividend', 'DividendShare', dollar_format)
     add_column(cef_report, 'Yield', 'CalcYield', percent_format)

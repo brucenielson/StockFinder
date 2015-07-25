@@ -8,7 +8,16 @@ import datetime
 import time
 import os
 import csv
-import copy
+import logging
+
+
+
+logging.basicConfig(filename="stocks.log",
+                            filemode='a',
+                            format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.DEBUG)
+
 
 __author__ = 'Bruce Nielson'
 
@@ -113,7 +122,6 @@ def download_yahoo_quote_data(symbol_list):
             value = {attribute_list[i][0]: stock[i]}
             result[stock[0]].update(value)
 
-
     return standardize_data(result, attributes)
 
 
@@ -147,6 +155,8 @@ def get_stock_data(symbol_list):
 
     symbol_list = _process_symbol_list(symbol_list)
     return _safe_get_data(do_work, symbol_list)
+
+
 
 
 
@@ -326,8 +336,6 @@ def standardize_data(data, fields):
                     data[row][item] = convert_to_float(value)
                 except (TypeError, ValueError): # pragma: no cover
                     pass
-
-
 
     return data
 
@@ -740,14 +748,14 @@ def _safe_get_data(function, symbol_list):
                 max_attempts = 3
 
             if attempt  > max_attempts:
-                print "Giving up with " + str(len(remaining_symbols)) + " remaining."
+                logging.warning("_safe_get_data: Giving up with " + str(len(remaining_symbols)) + " remaining.")
                 remaining_symbols = {}
             else:
-                print "Remaining Symbols: " + str(len(remaining_symbols))
-                print "Failed Attempt: " + str(attempt)
+                logging.info("_safe_get_data: Remaining Symbols: " + str(len(remaining_symbols)))
+                logging.warning("_safe_get_data: Failed Attempt: " + str(attempt))
                 time.sleep(attempt)
                 attempt += 1
-                print "Trying Again. Attempt " + str(attempt)
+                logging.info("_safe_get_data: Trying Again. Attempt " + str(attempt))
 
     return final
 
@@ -788,7 +796,7 @@ def get_combined_data(symbol_list):
     standardize_data(data, ALL_FIELDS)
 
     end_time = time.clock()
-    print str(end_time-start_time) + " seconds"
+    logging.info("get_combined_data: " + str(end_time-start_time) + " seconds")
 
     return data
 

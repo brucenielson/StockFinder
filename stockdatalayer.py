@@ -5,9 +5,14 @@ from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey
 import datetime as dt
 from sqlalchemy.orm import relationship, backref, sessionmaker
 import lxml, lxml.html, requests
+import yahoostockdata
+import stockdatabase
+import logging
 
 
 Base = declarative_base()
+
+# ORM and Stock Database Classes and Functions
 
 
 def initialize_datalayer(database_name="stocks.db"):
@@ -166,45 +171,30 @@ class Category(Base):
 
 
 
-def load_categories(database_name="stocks.db"):
-    session = initialize_datalayer(database_name)
-    category1 = Category(name="S&P 500", code="SNP")
-    category2 = Category(name="Master Limited Partnership", code="MLP")
-    category3 = Category(name="Closed End Fund", code="CEF")
-    session.add(category1)
-    session.add(category2)
-    session.add(category3)
-    session.commit()
 
-    return session.query(Category).all()
+# Web Scrapping Data Sources
 
 
-def load_stock_listings(database_name="stocks.db"):
-    get_snp500_list(refresh_from_web=True)
-    get_cef_list(refresh_from_web=True)
-    get_mlp_list(refresh_from_web=True)
+def get_snp500_list(refresh_from_web=False, session=None, database_name="stocks.db"):
+    snplist = get_stock_list("SNP", 'http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()', \
+                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
+    if len(snplist)<500:
+        raise Exception("Failed to load whole S&P 500 List from web") #TODO: Replace with a class based error
+
+    return snplist
 
 
 
-def get_web_table_info(url, xpath):
-    try:
-        # Try old way
-        # Use libxml to download the list of S&P500 companies and obtain the symbol table
-        page = lxml.html.parse(url)
-        result = page.xpath(xpath)
-    except:
-        try:
-            # try the new way
-            r = requests.get(url)
-            root = lxml.html.fromstring(r.content)
-            result = root.xpath(xpath)
-        except:
-            raise
+def get_cef_list(refresh_from_web=False, session=None, database_name="stocks.db"):
+    ceflist = get_stock_list("CEF", 'http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()',  \
+                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
+    return ceflist
 
-    result = [str(item) for item in result]
 
-    return result
-
+def get_mlp_list(refresh_from_web=False, session=None, database_name="stocks.db"):
+    mlplist = get_stock_list("MLP", 'http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()', \
+                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
+    return mlplist
 
 
 
@@ -234,25 +224,95 @@ def get_stock_list(list_code, url, xpath, refresh_from_web=False, session=None, 
 
 
 
-def get_snp500_list(refresh_from_web=False, session=None, database_name="stocks.db"):
-    snplist = get_stock_list("SNP", 'http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()', \
-                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
-    if len(snplist)<500:
-        raise Exception("Failed to load whole S&P 500 List from web") #TODO: Replace with a class based error
-
-    return snplist
 
 
+def get_web_table_info(url, xpath):
+    try:
+        # Try old way
+        # Use libxml to download the list of S&P500 companies and obtain the symbol table
+        page = lxml.html.parse(url)
+        result = page.xpath(xpath)
+    except:
+        try:
+            # try the new way
+            r = requests.get(url)
+            root = lxml.html.fromstring(r.content)
+            result = root.xpath(xpath)
+        except:
+            raise
 
-def get_cef_list(refresh_from_web=False, session=None, database_name="stocks.db"):
-    ceflist = get_stock_list("CEF", 'http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()',  \
-                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
-    return ceflist
+    result = [str(item) for item in result]
+
+    return result
 
 
-def get_mlp_list(refresh_from_web=False, session=None, database_name="stocks.db"):
-    mlplist = get_stock_list("MLP", 'http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()', \
-                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
-    return mlplist
+
+
+
+# Table Loading Functions - One time use (Hopefully)
+
+def load_snp500(database_name="stocks.db", delete_first=False):
+    session = initialize_datalayer(database_name)
+    snplist = [listing.symbol for listing in get_snp500_list()]
+
+    if delete_first == True:
+        cat_id = session.query(Category).filter_by(code="SNP").one().id
+        session.query(Stock).filter(Stock.symbol.in_(snplist)).delete(synchronize_session='fetch')
+        session.commit()
+
+    snp = yahoostockdata.get_combined_data(snplist)
+
+    # Persist data to database
+    for symbol in snp:
+        stock = snp[symbol]
+        stock_row = Stock(symbol=symbol, company_name=stock['Name'], company_start=stock['start'])
+
+        # Get old data that isn't scrapped any more
+        old_data = stockdatabase.retrieve_stock_list_from_db(symbol, 'stocksdataold.db')
+        if old_data != []:
+            old_data = old_data[0]
+            stock_row.industry = old_data[2]
+            stock_row.sector = old_data[3]
+            stock_row.num_full_time_employees = old_data[5]
+        else:
+            logging.info("No old data for: "+ str(symbol))
+
+        if 'DividendHistory' in stock:
+            div_hist = stock['DividendHistory']
+
+            for div in div_hist:
+                div_row = Dividend()
+                div_row.dividend_date = div['Date']
+                div_row.dividend = div['Dividends']
+                stock_row.dividends.append(div_row)
+
+        session.add(stock_row)
+
+    session.commit()
+
+    return session.query(Stock).all()
+
+
+
+
+
+def load_categories(database_name="stocks.db"):
+    session = initialize_datalayer(database_name)
+    category1 = Category(name="S&P 500", code="SNP")
+    category2 = Category(name="Master Limited Partnership", code="MLP")
+    category3 = Category(name="Closed End Fund", code="CEF")
+    session.add(category1)
+    session.add(category2)
+    session.add(category3)
+    session.commit()
+
+    return session.query(Category).all()
+
+
+def load_stock_listings(database_name="stocks.db"):
+    get_snp500_list(refresh_from_web=True)
+    get_cef_list(refresh_from_web=True)
+    get_mlp_list(refresh_from_web=True)
+
 
 

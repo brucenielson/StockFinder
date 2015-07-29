@@ -33,6 +33,32 @@ def create_div_achievers_list(use_saved_snp=False):
 
 
 
+inspect_mlp = []
+def create_mlp_list(use_saved_mlp=False):
+    mlpdata = []
+    if use_saved_mlp == True:
+        mlpdata = stockdatabase.get_pickle_stock_data()
+
+    if mlpdata == []:
+        mlplist = stockdatabase.get_mlp_list()
+        mlpdata = yahoostockdata.get_combined_data(mlplist)
+        # save most recent for next time
+        stockdatabase.pickle_stock_data(mlpdata)
+
+    global inspect_mlp
+    inspect_mlp = mlpdata
+
+    #Pre-Process Data
+    stockanalysis.analyze_data(mlpdata)
+    stockanalysis.get_stock_target_analysis(mlpdata)
+
+    div_achievers_10 = stockanalysis.get_div_acheivers(mlpdata, 10)
+    create_stock_list_worksheet(div_achievers_10)
+
+    return div_achievers_10
+
+
+
 
 inspect_cef = []
 def create_cef_report(use_saved_cef=False):

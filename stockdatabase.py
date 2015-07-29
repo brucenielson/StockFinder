@@ -81,7 +81,7 @@ def create_database(database_name = "stocksdata.db"):
 
 
 
-def execute_quere(sql, database = "stocksdata.db"):
+def execute_query(sql, database = "stocksdata.db"):
     try:
         db = sqlite3.connect(os.path.dirname(__file__)+"\\"+database)
         cursor = db.cursor()

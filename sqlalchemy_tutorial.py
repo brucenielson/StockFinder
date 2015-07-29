@@ -403,3 +403,309 @@ def sqlalchemy_createdb_tutorial(database_name = "stocksdb.db"):
         primary_key=True))
 
     metadata.create_all()
+
+
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey
+import datetime as dt
+from sqlalchemy.orm import relationship, backref, sessionmaker
+Base = declarative_base()
+
+
+def initialize_datalayer(database_name="test.db"):
+    engine = create_engine('sqlite:///'+database_name)#, echo=True)
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    return Session()
+
+
+
+class Stock(Base):
+    __tablename__ = 'stock'
+
+    # Company Data - Rarely updates
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String(5), unique=True, nullable=False)
+    company_name = Column(String, default='')
+    industry = Column(String, default='')
+    sector = Column(String, default='')
+    created = Column(DateTime, default=dt.datetime.now())
+    company_start = Column(DateTime)
+    num_full_time_employees = Column(Integer)
+    company_data_last_updated = Column(DateTime, default=dt.datetime.now())
+    new_field = Column(String)
+
+
+
+
+def test_database_funcs(database_name="test.db"):
+    session = initialize_datalayer(database_name)
+    stock1 = Stock()
+    stock1.company_name = "Company Name"
+    stock1.symbol = "FOO"
+    stock1.industry = "Weasle Raising"
+    stock1.eps = 1.5
+    stock1.forward_div = 2.6
+
+    session.add(stock1)
+    session.commit()
+
+    stock2 = session.query(Stock).filter_by(symbol='FOO').one()
+    print stock2.new_field
+
+
+
+def add_column(engine, table, column):
+  table_name = table.description
+  column_name = column.compile(dialect=engine.dialect)
+  column_type = column.type.compile(engine.dialect)
+  engine.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table_name, column_name, column_type))
+# http://stackoverflow.com/questions/7300948/add-column-to-sqlalchemy-table
+#column = Column('new column', String(100), primary_key=True)
+#add_column(engine, column)
+
+
+
+import sqlite3, os
+def get_schema(database_name='test.db'):
+    con = sqlite3.connect(database_name)
+    with open('dump.sql', 'w') as f:
+        for line in con.iterdump():
+            f.write('%s\n' % line)
+
+
+def get_schema2(database_name='test.db'):
+    con = sqlite3.connect(database_name)
+    cursor = con.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    print(cursor.fetchall())
+
+
+
+def get_schema3(database_name='test.db'):
+    con = sqlite3.connect(database_name)
+    cursor = con.cursor()
+    meta = cursor.execute("PRAGMA table_info('Job')")
+    print meta
+    for r in meta:
+        print r
+
+
+
+def get_schema4(database_name='test.db'):
+    con = sqlite3.connect(database_name)
+    _iterdump(con)
+
+# Mimic the sqlite3 console shell's .dump command
+# Author: Paul Kippes <kippesp@gmail.com>
+
+def _iterdump(connection):
+    """
+    Returns an iterator to the dump of the database in an SQL text format.
+
+    Used to produce an SQL dump of the database.  Useful to save an in-memory
+    database for later restoration.  This function should not be called
+    directly but instead called from the Connection method, iterdump().
+    """
+
+    cu = connection.cursor()
+    yield('BEGIN TRANSACTION;')
+
+    # sqlite_master table contains the SQL CREATE statements for the database.
+    q = """
+        SELECT name, type, sql
+        FROM sqlite_master
+            WHERE sql NOT NULL AND
+            type == 'table'
+        """
+    schema_res = cu.execute(q)
+    for table_name, type, sql in schema_res.fetchall():
+        if table_name == 'sqlite_sequence':
+            yield('DELETE FROM sqlite_sequence;')
+        elif table_name == 'sqlite_stat1':
+            yield('ANALYZE sqlite_master;')
+        elif table_name.startswith('sqlite_'):
+            continue
+        # NOTE: Virtual table support not implemented
+        #elif sql.startswith('CREATE VIRTUAL TABLE'):
+        #    qtable = table_name.replace("'", "''")
+        #    yield("INSERT INTO sqlite_master(type,name,tbl_name,rootpage,sql)"\
+        #        "VALUES('table','%s','%s',0,'%s');" %
+        #        qtable,
+        #        qtable,
+        #        sql.replace("''"))
+        else:
+            yield('%s;' % sql)
+
+        # Build the insert statement for each row of the current table
+        res = cu.execute("PRAGMA table_info('%s')" % table_name)
+        column_names = [str(table_info[1]) for table_info in res.fetchall()]
+        q = "SELECT 'INSERT INTO \"%(tbl_name)s\" VALUES("
+        q += ",".join(["'||quote(" + col + ")||'" for col in column_names])
+        q += ")' FROM '%(tbl_name)s'"
+        query_res = cu.execute(q % {'tbl_name': table_name})
+        for row in query_res:
+            yield("%s;" % row[0])
+
+    # Now when the type is 'index', 'trigger', or 'view'
+    q = """
+        SELECT name, type, sql
+        FROM sqlite_master
+            WHERE sql NOT NULL AND
+            type IN ('index', 'trigger', 'view')
+        """
+    schema_res = cu.execute(q)
+    for name, type, sql in schema_res.fetchall():
+        yield('%s;' % sql)
+
+    yield('COMMIT;')
+
+
+
+import sqlite3
+
+def getTableDump(db_file, table_to_dump):
+    conn = sqlite3.connect(':memory:')
+    cu = conn.cursor()
+    cu.execute("attach database '" + db_file + "' as attached_db")
+    cu.execute("select sql from attached_db.sqlite_master "
+               "where type='table' and name='" + table_to_dump + "'")
+    sql_create_table = cu.fetchone()[0]
+    cu.execute(sql_create_table);
+    cu.execute("insert into " + table_to_dump +
+               " select * from attached_db." + table_to_dump)
+    conn.commit()
+    cu.execute("detach database attached_db")
+    sql =  "\n".join(conn.iterdump()).encode('ascii')
+    cu.execute(sql)
+
+    #TABLE_TO_DUMP = 'table_to_dump'
+    #DB_FILE = 'db_file'
+
+    #sql = getTableDump(DB_FILE, TABLE_TO_DUMP).encode('ascii')
+    #cu.execute(sql)
+    #print "done"
+
+
+def add_new_column(table_name, new_column, column_type, default_val=None, database_name='test.db'):
+    # Sebastian Raschka, 2014
+    # Adding a new column to an existing SQLite database
+
+    sqlite_file = database_name    # name of the sqlite database file
+    #table_name = 'my_table_2'	# name of the table to be created
+    #id_column = 'my_1st_column' # name of the PRIMARY KEY column
+    #new_column1 = 'my_2nd_column'  # name of the new column
+    #new_column2 = 'my_3rd_column'  # name of the new column
+    #column_type = 'TEXT' # E.g., INTEGER, TEXT, NULL, REAL, BLOB
+    #default_val = 'Hello World' # a default value for the new column rows
+
+    # Connecting to the database file
+    conn = sqlite3.connect(sqlite_file)
+    c = conn.cursor()
+
+    if default_val == None:
+        # A) Adding a new column without a row value
+        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
+                .format(tn=table_name, cn=new_column, ct=column_type))
+    else:
+        # B) Adding a new column with a default row value
+        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
+                .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
+
+    # Committing changes and closing the connection to the database file
+    conn.commit()
+    conn.close()
+
+
+
+# http://stackoverflow.com/questions/2103274/sqlalchemy-add-new-field-to-class-and-create-corresponding-column-in-table/8462508#8462508
+import logging
+import re
+
+import sqlalchemy
+from sqlalchemy import MetaData, Table#, exceptions
+import sqlalchemy.engine.ddl
+
+_new_sa_ddl = sqlalchemy.__version__.startswith('0.7')
+
+
+def create_and_upgrade(engine, metadata):
+    """For each table in metadata, if it is not in the database then create it.
+    If it is in the database then add any missing columns and warn about any columns
+    whose spec has changed"""
+    db_metadata = MetaData()
+    db_metadata.bind = engine
+
+    for model_table in metadata.sorted_tables:
+        try:
+            db_table = Table(model_table.name, db_metadata, autoload=True)
+        except: #exceptions.NoSuchTableError:
+            pass
+            #logging.info('Creating table %s' % model_table.name)
+            #model_table.create(bind=engine)
+        else:
+            if _new_sa_ddl:
+                ddl_c = engine.dialect.ddl_compiler(engine.dialect, None)
+            else:
+                # 0.6
+                ddl_c = engine.dialect.ddl_compiler(engine.dialect, db_table)
+            # else:
+                # 0.5
+                # ddl_c = engine.dialect.schemagenerator(engine.dialect, engine.contextual_connect())
+
+            logging.debug('Table %s already exists. Checking for missing columns' % model_table.name)
+
+            model_columns = _column_names(model_table)
+            db_columns = _column_names(db_table)
+
+            to_create = model_columns - db_columns
+            to_remove = db_columns - model_columns
+            to_check = db_columns.intersection(model_columns)
+
+            for c in to_create:
+                model_column = getattr(model_table.c, c)
+                logging.info('Adding column %s.%s' % (model_table.name, model_column.name))
+                assert not model_column.constraints, \
+                    'Arrrgh! I cannot automatically add columns with constraints to the database'\
+                        'Please consider fixing me if you care!'
+                model_col_spec = ddl_c.get_column_specification(model_column)
+                sql = 'ALTER TABLE %s ADD %s' % (model_table.name, model_col_spec)
+                engine.execute(sql)
+
+            # It's difficult to reliably determine if the model has changed
+            # a column definition. E.g. the default precision of columns
+            # is None, which means the database decides. Therefore when I look at the model
+            # it may give the SQL for the column as INTEGER but when I look at the database
+            # I have a definite precision, therefore the returned type is INTEGER(11)
+
+            for c in to_check:
+                model_column = model_table.c[c]
+                db_column = db_table.c[c]
+                x =  model_column == db_column
+
+                logging.debug('Checking column %s.%s' % (model_table.name, model_column.name))
+                model_col_spec = ddl_c.get_column_specification(model_column)
+                db_col_spec = ddl_c.get_column_specification(db_column)
+
+                model_col_spec = re.sub('[(][\d ,]+[)]', '', model_col_spec)
+                db_col_spec = re.sub('[(][\d ,]+[)]', '', db_col_spec)
+                db_col_spec = db_col_spec.replace('DECIMAL', 'NUMERIC')
+                db_col_spec = db_col_spec.replace('TINYINT', 'BOOL')
+
+                if model_col_spec != db_col_spec:
+                    logging.warning('Column %s.%s has specification %r in the model but %r in the database' %
+                                       (model_table.name, model_column.name, model_col_spec, db_col_spec))
+
+                if model_column.constraints or db_column.constraints:
+                    # TODO, check constraints
+                    logging.debug('Column constraints not checked. I am too dumb')
+
+            for c in to_remove:
+                model_column = getattr(db_table.c, c)
+                logging.warning('Column %s.%s in the database is not in the model' % (model_table.name, model_column.name))
+
+
+def _column_names(table):
+    # Autoloaded columns return unicode column names - make sure we treat all are equal
+    return set((unicode(i.name) for i in table.c))

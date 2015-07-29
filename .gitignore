@@ -30,6 +30,9 @@ stockdata.txt
 .idea
 spreadsheets
 
+# Logs
+*.log
+
 # =========================
 # Operating System Files
 # =========================

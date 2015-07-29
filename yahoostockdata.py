@@ -749,6 +749,7 @@ def _safe_get_data(function, symbol_list):
 
             if attempt  > max_attempts:
                 logging.warning("_safe_get_data: Giving up with " + str(len(remaining_symbols)) + " remaining.")
+                print "_safe_get_data: Giving up with " + str(len(remaining_symbols)) + " remaining."
                 remaining_symbols = {}
             else:
                 logging.info("_safe_get_data: Remaining Symbols: " + str(len(remaining_symbols)))

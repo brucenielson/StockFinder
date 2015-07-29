@@ -191,7 +191,7 @@ def get_div_growth(div_hist, years):
     most_recent_div = div_hist[0]
     most_recent_date = most_recent_div['Date']
     # Search for dividend years ago (minus 5 days to try to capture slight differences in date for ex-dividend)
-    target_date = years_ago(years, most_recent_date) - datetime.timedelta(days=-5)
+    target_date = years_ago(years, most_recent_date) - datetime.timedelta(days=5) # TODO: was -5 days, but can that be right?
     for div in div_hist:
         div_date = div['Date']
         if div_date <= target_date:
@@ -352,7 +352,7 @@ def get_stock_target_analysis(data):
         stock = data[symbol]
         stock['ProjectedRateAdjusted'] = 0.0
 
-        if 'DividendShare' in stock and stock['DividendShare'] != None:
+        if 'DividendShare' in stock and stock['DividendShare'] != None and stock['LastTradePriceOnly'] != None:
             stock['CalcYield'] = float(stock['DividendShare']) / float(stock['LastTradePriceOnly'])
 
             if 'YearsOfDividendGrowth' in stock and stock['YearsOfDividendGrowth'] >= 1.0:

@@ -20,23 +20,80 @@ class Datalayer():
 
     session = None
     database_name = ""
+    echo = False
+    engine = None
+    cef_list = []
+    snp500_list = []
+    mlp_list = []
 
+    # Initialize database and session
     def __init__(self, database_name="stocks.db", echo=False):
+        self.echo = echo
         self.database_name = database_name
-        engine = create_engine('sqlite:///'+database_name, echo=echo)
-        Base.metadata.create_all(engine)
-        Session = sessionmaker(bind=engine)
+        self.engine = create_engine('sqlite:///'+database_name, echo=self.echo)
+        Base.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
         self.session = Session()
 
 
+    # Reset database and session
+    def reset_session(self):
+        self.session.close_all()
+        self.engine = create_engine('sqlite:///'+self.database_name, echo=self.echo)
+        Base.metadata.create_all(self.engine)
+        Session = sessionmaker(bind=self.engine)
+        self.session = Session()
+
+
+
+    # Get stock lists from either database or from web (saved to database)
+
+
     def get_cef_list(self, refresh_from_web=False):
-        return self.get_stock_list("CEF", 'http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()',  \
+        if refresh_from_web == True or self.cef_list == []:
+            self.cef_list = self.get_stock_list("CEF", 'http://online.wsj.com/mdc/public/page/2_3024-CEF.html?mod=topnav_2_3040', '//table/tr/td[2]/nobr/a/text()',  \
                               refresh_from_web=refresh_from_web)
+        return self.cef_list
+
+
+
+    def get_snp500_list(self, refresh_from_web=False):
+        if refresh_from_web == True or self.snp500_list == []:
+            self.snp500_list = self.get_stock_list("SNP", 'http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()', \
+                              refresh_from_web=refresh_from_web)
+        if len(self.snp500_list)<500:
+            raise Exception("Failed to load whole S&P 500 List from web") #TODO: Replace with a class based error
+
+        return self.snp500_list
+
+
+
+    def get_mlp_list(self, refresh_from_web=False):
+        if refresh_from_web == True or self.mlp_list == []:
+            self.mlp_list = self.get_stock_list("MLP", 'http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()', \
+                              refresh_from_web=refresh_from_web)
+        return self.mlp_list
+
+
 
 
     def is_cef(self, symbol):
-        ceflist = self.get_cef_list()
-        return (symbol in ceflist)
+        if self.cef_list == []:
+            self.cef_list = self.get_cef_list()
+        return (symbol in self.cef_list)
+
+
+    def is_mlp(self, symbol):
+        if self.mlp_list == []:
+            self.mlp_list = self.get_mlp_list()
+        return (symbol in self.mlp_list)
+
+
+    def is_snp500(self, symbol):
+        if self.snp500_list == []:
+            self.snp500_list = self.get_snp500_list()
+        return (symbol in self.snp500_list)
+
 
 
     # list_code can be "SNP", "MLP", or "CEF"
@@ -59,11 +116,53 @@ class Datalayer():
         return [row.symbol for row in result]
 
 
+    # Retrieves a list of all stocks in the database from a list of stocks. If stock_list = None, it retrieves all stocks in the database
+    def get_stocks(self, stock_list=None):
+        if stock_list == None:
+            return self.session.query(Stock).all()
+        else:
+            return self.session.query(Stock).filter(Stock.symbol.in_(stock_list)).all()
+
+
+    def get_all_stocks_in_db(self):
+        all_stocks = self.get_stocks()
+        return [row.symbol for row in all_stocks]
+
+
+
     # Table Loading Functions - One time use (Hopefully)
 
     def load_cefs(self, refresh_from_web=False, delete_first=False):
         ceflist = self.get_cef_list(refresh_from_web)
         return self.load_list(ceflist, "CEF", delete_first=delete_first)
+
+
+
+    def load_snp500(self, refresh_from_web=False, delete_first=False):
+        snplist = self.get_snp500_list(refresh_from_web)
+        return self.load_list(snplist, "SNP", delete_first=delete_first)
+
+
+
+    def load_mlps(self, refresh_from_web=False, delete_first=False):
+        mlplist = self.get_mlp_list(refresh_from_web)
+        return self.load_list(mlplist, "MLP", delete_first=delete_first)
+
+
+
+
+
+    def load_categories(self):
+        category1 = Category(name="S&P 500", code="SNP")
+        category2 = Category(name="Master Limited Partnership", code="MLP")
+        category3 = Category(name="Closed End Fund", code="CEF")
+        self.session.add(category1)
+        self.session.add(category2)
+        self.session.add(category3)
+        self.session.commit()
+
+        return self.session.query(Category).all()
+
 
 
 
@@ -97,6 +196,10 @@ class Datalayer():
             cat_id = self.session.query(Category).filter_by(code=stock_code).one().id
             self.session.query(Stock).filter(Stock.symbol.in_(stocklist)).delete(synchronize_session='fetch')
             self.session.commit()
+        else:
+            # if we aren't deleting first, then remove from stocklist any that are already in the database
+            all_stocks = self.get_all_stocks_in_db()
+            stocklist = [symbol for symbol in stocklist if symbol not in all_stocks]
 
         data = yahoostockdata.get_combined_data(stocklist)
 
@@ -417,56 +520,9 @@ def test_database():
 # Web Scrapping Data Sources
 
 
-def get_snp500_list(refresh_from_web=False, session=None, database_name="stocks.db"):
-    snplist = get_stock_list("SNP", 'http://en.wikipedia.org/wiki/List_of_S%26P_500_companies', '//table[1]/tr/td[1]/a/text()', \
-                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
-    if len(snplist)<500:
-        raise Exception("Failed to load whole S&P 500 List from web") #TODO: Replace with a class based error
-
-    return [listing.symbol for listing in snplist]
-
-
-
-def get_mlp_list(refresh_from_web=False, session=None, database_name="stocks.db"):
-    mlplist = get_stock_list("MLP", 'http://www.dividend.com/dividend-stocks/mlp-dividend-stocks.php#', '//div/table[1]/tr/td[1]/a/strong/text()', \
-                          refresh_from_web=refresh_from_web, session=session, database_name=database_name)
-    return [listing.symbol for listing in mlplist]
-
-
-
-
 
 
 # Table Loading Functions - One time use (Hopefully)
-
-def load_snp500(refresh_from_web=False, session=None, database_name="stocks.db", delete_first=False):
-    snplist = get_snp500_list(refresh_from_web, session, database_name)
-    return load_list(snplist, "SNP", database_name=database_name, delete_first=delete_first)
-
-
-
-def load_mlps(refresh_from_web=False, session=None, database_name="stocks.db", delete_first=False):
-    mlplist = get_mlp_list(refresh_from_web, session, database_name)
-    return load_list(mlplist, "MLP", database_name=database_name, delete_first=delete_first)
-
-
-
-
-
-
-
-
-def load_categories(database_name="stocks.db"):
-    session = initialize_datalayer(database_name)
-    category1 = Category(name="S&P 500", code="SNP")
-    category2 = Category(name="Master Limited Partnership", code="MLP")
-    category3 = Category(name="Closed End Fund", code="CEF")
-    session.add(category1)
-    session.add(category2)
-    session.add(category3)
-    session.commit()
-
-    return session.query(Category).all()
 
 
 def load_stock_listings(database_name="stocks.db"):

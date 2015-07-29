@@ -1,722 +1,240 @@
 (lp0
-S'\n                        \tStock'
+S'AB'
 p1
-aS'<Element br at 0x31f4900>'
+aS'ACMP'
 p2
-aS'Symbol\n                        '
+aS'AHGP'
 p3
-aS'\n                        \t'
+aS'APL'
 p4
-aS'<Element a at 0x31f4270>'
+aS'APU'
 p5
-aS'                        '
+aS'ARH-C'
 p6
-aS'\n                        \t'
+aS'ARLP'
 p7
-aS'<Element a at 0x31f4180>'
+aS'ARP'
 p8
-aS'                        '
+aS'ATAX'
 p9
-aS'\n                        \t'
+aS'ATLS'
 p10
-aS'<Element a at 0x31f4d80>'
+aS'AXS-C'
 p11
-aS'                        '
+aS'BBEP'
 p12
-aS'\n                        \t'
+aS'BIP'
 p13
-aS'<Element a at 0x31f4de0>'
+aS'BPL'
 p14
-aS'                        '
+aS'BWP'
 p15
-aS'\n                        \t'
+aS'BX'
 p16
-aS'<Element a at 0x31f4750>'
+aS'CBA'
 p17
-aS'                        '
+aS'CELP'
 p18
-aS'\n                        \t'
+aS'CEQP'
 p19
-aS'<Element a at 0x31cc1e0>'
+aS'CLMT'
 p20
-aS'                        '
+aS'CMLP'
 p21
-aS'\n                        \t'
+aS'CNNX'
 p22
-aS'<Element a at 0x31e0960>'
+aS'CPLP'
 p23
-aS'                        '
+aS'CQP'
 p24
-aS'\n                        \t'
+aS'CVRR'
 p25
-aS'<Element a at 0x31e09c0>'
+aS'DEP'
 p26
-aS'                        '
+aS'DKL'
 p27
-aS'\n                        \t'
+aS'DMLP'
 p28
-aS'<Element a at 0x31e0a20>'
+aS'DPM'
 p29
-aS'                        '
+aS'DSE'
 p30
-aS'\n                        \t'
+aS'EEP'
 p31
-aS'<Element a at 0x31e0a80>'
+aS'EFC'
 p32
-aS'                        '
+aS'ENLK'
 p33
-aS'\n                        \t'
+aS'EPB'
 p34
-aS'<Element a at 0x31e0ae0>'
+aS'EPD'
 p35
-aS'                        '
+aS'EROC'
 p36
-aS'\n                        \t'
+aS'ESBA'
 p37
-aS'<Element a at 0x31e0b40>'
+aS'ETE'
 p38
-aS'                        '
+aS'ETP'
 p39
-aS'\n                        \t'
+aS'EVEP'
 p40
-aS'<Element a at 0x31e0ba0>'
+aS'EXLP'
 p41
-aS'                        '
+aS'FGP'
 p42
-aS'\n                        \t'
+aS'FISK'
 p43
-aS'<Element a at 0x31e0c00>'
+aS'FUN'
 p44
-aS'                        '
+aS'GEL'
 p45
-aS'\n                        \t'
+aS'GLOP'
 p46
-aS'<Element a at 0x31e0c60>'
+aS'GLP'
 p47
-aS'                        '
+aS'GMLP'
 p48
-aS'\n                        \t'
+aS'GST-A'
 p49
-aS'<Element a at 0x31e0cc0>'
+aS'HEP'
 p50
-aS'                        '
+aS'HLSS'
 p51
-aS'\n                        \t'
+aS'IEP'
 p52
-aS'<Element a at 0x31e0d20>'
+aS'JPEP'
 p53
-aS'                        '
+aS'KFN'
 p54
-aS'\n                        \t'
+aS'KSP'
 p55
-aS'<Element a at 0x31e0d80>'
+aS'KYN-E'
 p56
-aS'                        '
+aS'LGCY'
 p57
-aS'\n                        \t'
+aS'LGP'
 p58
-aS'<Element a at 0x31e0de0>'
+aS'LINE'
 p59
-aS'                        '
+aS'LMRK'
 p60
-aS'\n                        \t'
+aS'LRE'
 p61
-aS'<Element a at 0x31e0e40>'
+aS'MCEP'
 p62
-aS'                        '
+aS'MEMP'
 p63
-aS'\n                        \t'
+aS'MLPJ'
 p64
-aS'<Element a at 0x31e0ea0>'
+aS'MMLP'
 p65
-aS'                        '
+aS'MMP'
 p66
-aS'\n                        \t'
+aS'MPLX'
 p67
-aS'<Element a at 0x31e0f00>'
+aS'MWE'
 p68
-aS'                        '
+aS'NEN'
 p69
-aS'\n                        \t'
+aS'NGL'
 p70
-aS'<Element a at 0x31e0120>'
+aS'NGLS'
 p71
-aS'                        '
+aS'NLP'
 p72
-aS'\n                        \t'
+aS'NMM'
 p73
-aS'<Element a at 0x31e0090>'
+aS'NRGM'
 p74
-aS'                        '
+aS'NRGP'
 p75
-aS'\n                        \t'
+aS'NRGY'
 p76
-aS'<Element a at 0x31e01e0>'
+aS'NRP'
 p77
-aS'                        '
+aS'NS'
 p78
-aS'\n                        \t'
+aS'NTI'
 p79
-aS'<Element a at 0x31e0900>'
+aS'NZTCY'
 p80
-aS'                        '
+aS'OILT'
 p81
-aS'\n                        \t'
+aS'OKS'
 p82
-aS'<Element a at 0x31e0fc0>'
+aS'OZM'
 p83
-aS'                        '
+aS'PAA'
 p84
-aS'\n                        \t'
+aS'PDH'
 p85
-aS'<Element a at 0x2eaa570>'
+aS'PNG'
 p86
-aS'                        '
+aS'PSXP'
 p87
-aS'\n                        \t'
+aS'QEPM'
 p88
-aS'<Element a at 0x321d030>'
+aS'QRE'
 p89
-aS'                        '
+aS'RGP'
 p90
-aS'\n                        \t'
+aS'RNF'
 p91
-aS'<Element a at 0x321d090>'
+aS'RNO'
 p92
-aS'                        '
+aS'RRMS'
 p93
-aS'\n                        \t'
+aS'SDLP'
 p94
-aS'<Element a at 0x321d0f0>'
+aS'SEP'
 p95
-aS'                        '
+aS'SGU'
 p96
-aS'\n                        \t'
+aS'SMLP'
 p97
-aS'<Element a at 0x321d150>'
+aS'SPH'
 p98
-aS'                        '
+aS'STON'
 p99
-aS'\n                        \t'
+aS'SUN'
 p100
-aS'<Element a at 0x321d1b0>'
+aS'SUSP'
 p101
-aS'                        '
+aS'SXCP'
 p102
-aS'\n                        \t'
+aS'SXE'
 p103
-aS'<Element a at 0x321d210>'
+aS'SXL'
 p104
-aS'                        '
+aS'TCP'
 p105
-aS'\n                        \t'
+aS'TGP'
 p106
-aS'<Element a at 0x321d270>'
+aS'TLLP'
 p107
-aS'                        '
+aS'TLP'
 p108
-aS'\n                        \t'
+aS'TNH'
 p109
-aS'<Element a at 0x321d2d0>'
+aS'TOO'
 p110
-aS'                        '
+aS'UAN'
 p111
-aS'\n                        \t'
+aS'USAC'
 p112
-aS'<Element a at 0x321d330>'
+aS'USDP'
 p113
-aS'                        '
+aS'VNR'
 p114
-aS'\n                        \t'
+aS'WES'
 p115
-aS'<Element a at 0x321d390>'
+aS'WGP'
 p116
-aS'                        '
+aS'WPZ'
 p117
-aS'\n                        \t'
+aS'XTEX'
 p118
-aS'<Element a at 0x321d3f0>'
+aS'YMLI'
 p119
-aS'                        '
-p120
-aS'\n                        \t'
-p121
-aS'<Element a at 0x321d450>'
-p122
-aS'                        '
-p123
-aS'\n                        \t'
-p124
-aS'<Element a at 0x321d4b0>'
-p125
-aS'                        '
-p126
-aS'\n                        \t'
-p127
-aS'<Element a at 0x321d510>'
-p128
-aS'                        '
-p129
-aS'\n                        \t'
-p130
-aS'<Element a at 0x321d570>'
-p131
-aS'                        '
-p132
-aS'\n                        \t'
-p133
-aS'<Element a at 0x321d5d0>'
-p134
-aS'                        '
-p135
-aS'\n                        \t'
-p136
-aS'<Element a at 0x321d630>'
-p137
-aS'                        '
-p138
-aS'\n                        \t'
-p139
-aS'<Element a at 0x321d690>'
-p140
-aS'                        '
-p141
-aS'\n                        \t'
-p142
-aS'<Element a at 0x321d6f0>'
-p143
-aS'                        '
-p144
-aS'\n                        \t'
-p145
-aS'<Element a at 0x321d750>'
-p146
-aS'                        '
-p147
-aS'\n                        \t'
-p148
-aS'<Element a at 0x321d7b0>'
-p149
-aS'                        '
-p150
-aS'\n                        \t'
-p151
-aS'<Element a at 0x321d810>'
-p152
-aS'                        '
-p153
-aS'\n                        \t'
-p154
-aS'<Element a at 0x321d870>'
-p155
-aS'                        '
-p156
-aS'\n                        \t'
-p157
-aS'<Element a at 0x321d8d0>'
-p158
-aS'                        '
-p159
-aS'\n                        \t'
-p160
-aS'<Element a at 0x321d930>'
-p161
-aS'                        '
-p162
-aS'\n                        \t'
-p163
-aS'<Element a at 0x321d990>'
-p164
-aS'                        '
-p165
-aS'\n                        \t'
-p166
-aS'<Element a at 0x321d9f0>'
-p167
-aS'                        '
-p168
-aS'\n                        \t'
-p169
-aS'<Element a at 0x321da50>'
-p170
-aS'                        '
-p171
-aS'\n                        \t'
-p172
-aS'<Element a at 0x321dab0>'
-p173
-aS'                        '
-p174
-aS'\n                        \t'
-p175
-aS'<Element a at 0x321db10>'
-p176
-aS'                        '
-p177
-aS'\n                        \t'
-p178
-aS'<Element a at 0x321db70>'
-p179
-aS'                        '
-p180
-aS'\n                        \t'
-p181
-aS'<Element a at 0x321dbd0>'
-p182
-aS'                        '
-p183
-aS'\n                        \t'
-p184
-aS'<Element a at 0x321dc30>'
-p185
-aS'                        '
-p186
-aS'\n                        \t'
-p187
-aS'<Element a at 0x321dc90>'
-p188
-aS'                        '
-p189
-aS'\n                        \t'
-p190
-aS'<Element a at 0x321dcf0>'
-p191
-aS'                        '
-p192
-aS'\n                        \t'
-p193
-aS'<Element a at 0x321dd50>'
-p194
-aS'                        '
-p195
-aS'\n                        \t'
-p196
-aS'<Element a at 0x321ddb0>'
-p197
-aS'                        '
-p198
-aS'\n                        \t'
-p199
-aS'<Element a at 0x321de10>'
-p200
-aS'                        '
-p201
-aS'\n                        \t'
-p202
-aS'<Element a at 0x321de70>'
-p203
-aS'                        '
-p204
-aS'\n                        \t'
-p205
-aS'<Element a at 0x321ded0>'
-p206
-aS'                        '
-p207
-aS'\n                        \t'
-p208
-aS'<Element a at 0x321df30>'
-p209
-aS'                        '
-p210
-aS'\n                        \t'
-p211
-aS'<Element a at 0x321df90>'
-p212
-aS'                        '
-p213
-aS'\n                        \t'
-p214
-aS'<Element a at 0x3200030>'
-p215
-aS'                        '
-p216
-aS'\n                        \t'
-p217
-aS'<Element a at 0x3200090>'
-p218
-aS'                        '
-p219
-aS'\n                        \t'
-p220
-aS'<Element a at 0x32000f0>'
-p221
-aS'                        '
-p222
-aS'\n                        \t'
-p223
-aS'<Element a at 0x3200150>'
-p224
-aS'                        '
-p225
-aS'\n                        \t'
-p226
-aS'<Element a at 0x32001b0>'
-p227
-aS'                        '
-p228
-aS'\n                        \t'
-p229
-aS'<Element a at 0x3200210>'
-p230
-aS'                        '
-p231
-aS'\n                        \t'
-p232
-aS'<Element a at 0x3200270>'
-p233
-aS'                        '
-p234
-aS'\n                        \t'
-p235
-aS'<Element a at 0x32002d0>'
-p236
-aS'                        '
-p237
-aS'\n                        \t'
-p238
-aS'<Element a at 0x3200330>'
-p239
-aS'                        '
-p240
-aS'\n                        \t'
-p241
-aS'<Element a at 0x3200390>'
-p242
-aS'                        '
-p243
-aS'\n                        \t'
-p244
-aS'<Element a at 0x32003f0>'
-p245
-aS'                        '
-p246
-aS'\n                        \t'
-p247
-aS'<Element a at 0x3200450>'
-p248
-aS'                        '
-p249
-aS'\n                        \t'
-p250
-aS'<Element a at 0x32004b0>'
-p251
-aS'                        '
-p252
-aS'\n                        \t'
-p253
-aS'<Element a at 0x3200510>'
-p254
-aS'                        '
-p255
-aS'\n                        \t'
-p256
-aS'<Element a at 0x3200570>'
-p257
-aS'                        '
-p258
-aS'\n                        \t'
-p259
-aS'<Element a at 0x32005d0>'
-p260
-aS'                        '
-p261
-aS'\n                        \t'
-p262
-aS'<Element a at 0x3200630>'
-p263
-aS'                        '
-p264
-aS'\n                        \t'
-p265
-aS'<Element a at 0x3200690>'
-p266
-aS'                        '
-p267
-aS'\n                        \t'
-p268
-aS'<Element a at 0x32006f0>'
-p269
-aS'                        '
-p270
-aS'\n                        \t'
-p271
-aS'<Element a at 0x3200750>'
-p272
-aS'                        '
-p273
-aS'\n                        \t'
-p274
-aS'<Element a at 0x32007b0>'
-p275
-aS'                        '
-p276
-aS'\n                        \t'
-p277
-aS'<Element a at 0x3200810>'
-p278
-aS'                        '
-p279
-aS'\n                        \t'
-p280
-aS'<Element a at 0x3200870>'
-p281
-aS'                        '
-p282
-aS'\n                        \t'
-p283
-aS'<Element a at 0x32008d0>'
-p284
-aS'                        '
-p285
-aS'\n                        \t'
-p286
-aS'<Element a at 0x3200930>'
-p287
-aS'                        '
-p288
-aS'\n                        \t'
-p289
-aS'<Element a at 0x3200990>'
-p290
-aS'                        '
-p291
-aS'\n                        \t'
-p292
-aS'<Element a at 0x32009f0>'
-p293
-aS'                        '
-p294
-aS'\n                        \t'
-p295
-aS'<Element a at 0x3200a50>'
-p296
-aS'                        '
-p297
-aS'\n                        \t'
-p298
-aS'<Element a at 0x3200ab0>'
-p299
-aS'                        '
-p300
-aS'\n                        \t'
-p301
-aS'<Element a at 0x3200b10>'
-p302
-aS'                        '
-p303
-aS'\n                        \t'
-p304
-aS'<Element a at 0x3200b70>'
-p305
-aS'                        '
-p306
-aS'\n                        \t'
-p307
-aS'<Element a at 0x3200bd0>'
-p308
-aS'                        '
-p309
-aS'\n                        \t'
-p310
-aS'<Element a at 0x3200c30>'
-p311
-aS'                        '
-p312
-aS'\n                        \t'
-p313
-aS'<Element a at 0x3200c90>'
-p314
-aS'                        '
-p315
-aS'\n                        \t'
-p316
-aS'<Element a at 0x3200cf0>'
-p317
-aS'                        '
-p318
-aS'\n                        \t'
-p319
-aS'<Element a at 0x3200d50>'
-p320
-aS'                        '
-p321
-aS'\n                        \t'
-p322
-aS'<Element a at 0x3200db0>'
-p323
-aS'                        '
-p324
-aS'\n                        \t'
-p325
-aS'<Element a at 0x3200e10>'
-p326
-aS'                        '
-p327
-aS'\n                        \t'
-p328
-aS'<Element a at 0x3200e70>'
-p329
-aS'                        '
-p330
-aS'\n                        \t'
-p331
-aS'<Element a at 0x3200ed0>'
-p332
-aS'                        '
-p333
-aS'\n                        \t'
-p334
-aS'<Element a at 0x3200f30>'
-p335
-aS'                        '
-p336
-aS'\n                        \t'
-p337
-aS'<Element a at 0x3200f90>'
-p338
-aS'                        '
-p339
-aS'\n                        \t'
-p340
-aS'<Element a at 0x3204030>'
-p341
-aS'                        '
-p342
-aS'\n                        \t'
-p343
-aS'<Element a at 0x3204090>'
-p344
-aS'                        '
-p345
-aS'\n                        \t'
-p346
-aS'<Element a at 0x32040f0>'
-p347
-aS'                        '
-p348
-aS'\n                        \t'
-p349
-aS'<Element a at 0x3204150>'
-p350
-aS'                        '
-p351
-aS'\n                        \t'
-p352
-aS'<Element a at 0x32041b0>'
-p353
-aS'                        '
-p354
-aS'\n                        \t'
-p355
-aS'<Element a at 0x3204210>'
-p356
-aS'                        '
-p357
-aS'\n                        \t'
-p358
-aS'<Element a at 0x3204270>'
-p359
-aS'                        '
-p360
 a.

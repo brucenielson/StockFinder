@@ -641,6 +641,8 @@ def format_dividend_history_data(data):
                 data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: datetime.datetime.strptime(x['Date'],"%Y-%m-%d"), reverse=True)
             except TypeError:
                 data_dict[last_symbol]['DividendHistory'].sort(key=lambda x: x['Date'], reverse=True)
+            except KeyError:
+                raise # ToDo: I keep getting a key error here when YQL fails to come back with a date. Deal with this more gracefully
 
     return data_dict
 
@@ -731,33 +733,51 @@ def _safe_get_data(function, symbol_list):
     starting_count = len(remaining_symbols)
     final = {}
 
-    attempt = 1
-    max_attempts = 15
-    while len(remaining_symbols) > 0:
-        result = function(remaining_symbols)
-        if len(result) > 0:
-            remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
-            final = dict(final.items() + result.items())
-            attempt = 1
-        else:
-            remaining_count = len(remaining_symbols)
-            perc_remaining = float(remaining_count) / float(starting_count)
-            if perc_remaining > 0.15:
-                max_attempts = 15
-            else:
-                max_attempts = 3
+    # Try once with everything
+    result = function(remaining_symbols)
+    if len(result) > 0:
+        remaining_symbols = [symbol for symbol in remaining_symbols if symbol not in result.keys()]
+        final = dict(final.items() + result.items())
 
-            if attempt  > max_attempts:
-                logging.warning("_safe_get_data: Giving up with " + str(len(remaining_symbols)) + " remaining.")
-                print "_safe_get_data: Giving up with " + str(len(remaining_symbols)) + " remaining."
-                remaining_symbols = {}
-            else:
-                logging.info("_safe_get_data: Remaining Symbols: " + str(len(remaining_symbols)))
-                logging.warning("_safe_get_data: Failed Attempt: " + str(attempt))
-                time.sleep(attempt)
-                attempt += 1
-                logging.info("_safe_get_data: Trying Again. Attempt " + str(attempt))
+    # If it didn't process everything in one try, then split it up and do it a little at a time
+    all_not_processed = []
+    finished = False
+    chunk_size = 25
+    while not finished:
 
+        while len(remaining_symbols) > 0:
+
+            chunk = remaining_symbols[0:chunk_size]
+            result = function(chunk)
+            if len(result) > 0:
+                final = dict(final.items() + result.items())
+
+            not_processed = [symbol for symbol in chunk if symbol not in result.keys()]
+            if len(not_processed) > 0:
+                logging.info("Not Processed:" + str(len(not_processed)))
+
+            # Drop that processed items
+            all_not_processed = all_not_processed + [symbol for symbol in not_processed]
+            remaining_symbols = remaining_symbols[chunk_size:]
+
+        # Repeat with a smaller chuck size with whatever is remaining
+        if chunk_size == 25:
+            remaining_symbols = all_not_processed[:]
+            all_not_processed = []
+            chunk_size = 1
+        elif chunk_size == 1:
+            finished = True
+
+    # Take all the not processed items and run them through one more time just to be sure
+    result = function(all_not_processed)
+    if len(result) > 0:
+        not_processed = [symbol for symbol in all_not_processed if symbol not in result.keys()]
+        all_not_processed = [symbol for symbol in not_processed]
+        final = dict(final.items() + result.items())
+
+    logging.info("Total Not Processed: " + str(len(all_not_processed)))
+    logging.info(str(all_not_processed))
+    #print len(all_not_processed)
     return final
 
 

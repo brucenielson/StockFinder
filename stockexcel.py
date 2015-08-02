@@ -7,6 +7,9 @@ import stockdatabase
 import stockanalysis
 
 
+#List of all ETFs
+#http://www.masterdata.com/HelpFiles/ETF_List_Downloads/AllTypes.csv
+
 inspect_snp = []
 def create_div_achievers_list(use_saved_snp=False):
     snp = []

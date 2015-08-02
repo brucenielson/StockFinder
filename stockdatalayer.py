@@ -9,6 +9,7 @@ import yahoostockdata
 import stockdatabase
 import logging
 import sqlite3
+from requests.exceptions import ConnectionError
 
 
 Base = declarative_base()
@@ -101,7 +102,7 @@ class Datalayer():
         if refresh_from_web == False:
             result = self.session.query(StockListing).join(Category).filter_by(code=list_code).all()
         else:
-            stocklist = self.get_web_table_info(url, xpath)
+            stocklist = get_web_table_info(url, xpath)
             if stocklist == []:
                 raise Exception("Failed to load stock list from web") #TODO: Replace with a class based error
             cat_id = self.session.query(Category).filter_by(code=list_code).one().id
@@ -132,23 +133,30 @@ class Datalayer():
 
     # Table Loading Functions - One time use (Hopefully)
 
-    def load_cefs(self, refresh_from_web=False, delete_first=False):
-        ceflist = self.get_cef_list(refresh_from_web)
+    def load_cefs(self, delete_first=False):
+        ceflist = self.get_cef_list(refresh_from_web=True)
         return self.load_list(ceflist, "CEF", delete_first=delete_first)
 
 
 
-    def load_snp500(self, refresh_from_web=False, delete_first=False):
-        snplist = self.get_snp500_list(refresh_from_web)
+    def load_snp500(self, delete_first=False):
+        snplist = self.get_snp500_list(refresh_from_web=True)
         return self.load_list(snplist, "SNP", delete_first=delete_first)
 
 
 
-    def load_mlps(self, refresh_from_web=False, delete_first=False):
-        mlplist = self.get_mlp_list(refresh_from_web)
+    def load_mlps(self, delete_first=False):
+        mlplist = self.get_mlp_list(refresh_from_web=True)
         return self.load_list(mlplist, "MLP", delete_first=delete_first)
 
 
+
+
+
+    def load_stock_listings(self):
+        self.get_snp500_list(refresh_from_web=True)
+        self.get_cef_list(refresh_from_web=True)
+        self.get_mlp_list(refresh_from_web=True)
 
 
 
@@ -205,6 +213,10 @@ class Datalayer():
 
         # Persist data to database
         for symbol in data:
+
+            if symbol == 'PHYS':
+                pass
+
             stock = data[symbol]
             stock_row = Stock(symbol=symbol, company_name=stock['Name'], company_start=stock['start'])
 
@@ -216,7 +228,8 @@ class Datalayer():
                 stock_row.sector = old_data[3]
                 stock_row.num_full_time_employees = old_data[5]
             else:
-                logging.info("No old data for: "+ str(symbol))
+                pass
+                # logging.info("No old data for: "+ str(symbol))
                 # TODO: Do a screen scrape instead
 
             if 'DividendHistory' in stock:
@@ -228,9 +241,6 @@ class Datalayer():
                     # Find equivalent distribution row
                     cef_distributions = self.get_cef_dividend_info(symbol)
                     iscef = True
-
-                if symbol == 'FAX':
-                    pass
 
                 for div in div_hist:
                     div_row = Dividend()
@@ -297,7 +307,7 @@ class Datalayer():
         num_headers = len(header_list)
 
         # Run through each column
-        table_data = self.get_web_table_info('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
+        table_data = get_web_table_info('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
         data_size = len(table_data)
 
         if data_size % num_headers != 0:
@@ -326,28 +336,39 @@ class Datalayer():
 
 
 
-    def get_web_table_info(self, url, xpath):
-        try:
-            # Try old way
-            # Use libxml to download the list of S&P500 companies and obtain the symbol table
-            page = lxml.html.parse(url)
-            result = page.xpath(xpath)
-        except:
-            try:
-                # try the new way
-                r = requests.get(url)
-                root = lxml.html.fromstring(r.content)
-                result = root.xpath(xpath)
-            except:
-                raise
 
-        result = [str(item) for item in result]
 
+
+def get_web_table_info(url, xpath):
+
+    def _get_result(url, xpath):
+        # try the new way
+        r = requests.get(url)
+        root = lxml.html.fromstring(r.content)
+        result = root.xpath(xpath)
         return result
 
+    try:
+        # Try old way
+        # Use libxml to download the list of S&P500 companies and obtain the symbol table
+        page = lxml.html.parse(url)
+        result = page.xpath(xpath)
+    except:
+        try:
+            result = _get_result(url, xpath)
+        except ConnectionError:
+            # If I get a ConnectionError, try again and then give up
+            try:
+                result = _get_result(url, xpath)
+            except ConnectionError:
+                # Failed twice, skip and move on
+                return []
+        except:
+            raise
 
+    result = [str(item) for item in result]
 
-
+    return result
 
 
 
@@ -477,6 +498,26 @@ class Category(Base):
 
 
 
+
+def add_new_column(table_name, new_column, column_type, default_val=None, database_name='beta.db'):
+    # Connecting to the database file
+    conn = sqlite3.connect(database_name)
+    c = conn.cursor()
+
+    if default_val == None:
+        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
+                .format(tn=table_name, cn=new_column, ct=column_type))
+    else:
+        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
+                .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
+
+    # Committing changes and closing the connection to the database file
+    conn.commit()
+    conn.close()
+
+
+
+
 """
 def test_database():
     session = initialize_datalayer()
@@ -517,35 +558,5 @@ def test_database():
 
 
 
-# Web Scrapping Data Sources
 
-
-
-
-# Table Loading Functions - One time use (Hopefully)
-
-
-def load_stock_listings(database_name="stocks.db"):
-    get_snp500_list(refresh_from_web=True)
-    get_cef_list(refresh_from_web=True)
-    get_mlp_list(refresh_from_web=True)
-
-
-
-
-def add_new_column(table_name, new_column, column_type, default_val=None, database_name='beta.db'):
-    # Connecting to the database file
-    conn = sqlite3.connect(database_name)
-    c = conn.cursor()
-
-    if default_val == None:
-        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
-                .format(tn=table_name, cn=new_column, ct=column_type))
-    else:
-        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
-                .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
-
-    # Committing changes and closing the connection to the database file
-    conn.commit()
-    conn.close()
 """

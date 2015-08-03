@@ -33,6 +33,10 @@ spreadsheets
 # Logs
 *.log
 
+# Other
+sqlite3.exe
+HTML/Archive
+
 # =========================
 # Operating System Files
 # =========================

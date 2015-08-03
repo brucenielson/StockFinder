@@ -9,10 +9,11 @@ app = Flask(__name__)
 #from models import *
 
 
-@app.route('/')
-def serve_html():
-    return send_from_directory('HTML', 'index.html')
-
+@app.route('/<path:path>')
+def serve_html(path):
+    result = send_from_directory('HTML', path)
+    print result
+    return result
 
 #@app.route('/<name>')
 #def hello_name(name):

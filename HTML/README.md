@@ -1,26 +1,34 @@
-# [Start Bootstrap](http://startbootstrap.com/) - [Simple Sidebar](http://startbootstrap.com/template-overviews/simple-sidebar/)
+white-angularjs-app
+==========================
 
-[Simple Sidebar](http://startbootstrap.com/template-overviews/simple-sidebar/) is an off canvas sidebar navigation template for [Bootstrap](http://getbootstrap.com/) created by [Start Bootstrap](http://startbootstrap.com/).
+White application with boilerplate code for AngularJS app. Extremely reduced, simple, fast way to start and grab the concepts behind AngularJS.
 
-## Getting Started
+This application can be use as a simple example of : 
 
-To use this template, choose one of the following options to get started:
-* Download the latest release on Start Bootstrap
-* Fork this repository on GitHub
+- How to start an angularJS app with nice directory structure and well-named files
+- How to test a specific concept (a new filter, a housemade directive, etc) in complete isolation of your already-old-and-complex-angularJS-app.
+- How to declare properly services, directives, etc, in a readable, scalable way.
 
-## Bugs and Issues
+It was first forked from the Angular Seed project, but was very simplified, I also added a few basic concept (dependency injection, real-world directive) that should appear in such example.
 
-Have a bug or an issue with this template? [Open a new issue](https://github.com/IronSummitMedia/startbootstrap-simple-sidebar/issues) here on GitHub or leave a comment on the [template overview page at Start Bootstrap](http://startbootstrap.com/template-overviews/simple-sidebar/).
+**Note:** There are no tools or server required to run this example.
 
-## Creator
+## Install and run
 
-Start Bootstrap was created by and is maintained by **David Miller**, Managing Parter at [Iron Summit Media Strategies](http://www.ironsummitmedia.com/).
+This application can be use as a simple example of : 
 
-* https://twitter.com/davidmillerskt
-* https://github.com/davidtmiller
+- Open 'index.html' with Firefox, OR launch chrome with the "--allow-file-access-from-files" option, then open 'index.html' with it
+- woaw, it works ! just open index.html and files under the js/ with your favorite text editor to understand how things happen.
 
-Start Bootstrap is based on the [Bootstrap](http://getbootstrap.com/) framework created by [Mark Otto](https://twitter.com/mdo) and [Jacob Thorton](https://twitter.com/fat).
 
-## Copyright and License
+## Directory structure (interesting parts)
+```
+-index.html
+-js/
+  |__routes.js 
+  |__controllers.js
+  |__directives.js
+  |__filters.js
+  |__services.js
 
-Copyright 2013-2015 Iron Summit Media Strategies, LLC. Code released under the [Apache 2.0](https://github.com/IronSummitMedia/startbootstrap-simple-sidebar/blob/gh-pages/LICENSE) license.
+```

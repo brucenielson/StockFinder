@@ -7,8 +7,10 @@ import stockdatabase
 import stockanalysis
 
 
-#List of all ETFs
-#http://www.masterdata.com/HelpFiles/ETF_List_Downloads/AllTypes.csv
+# List of all ETFs
+# http://www.masterdata.com/HelpFiles/ETF_List_Downloads/AllTypes.csv
+# List of all Preferred stocks
+# http://www.dividendyieldhunter.com/preferred-stocks-sorted-alphabetically
 
 inspect_snp = []
 def create_div_achievers_list(use_saved_snp=False):

@@ -1,41 +1,15 @@
-from flask import Flask, send_from_directory, jsonify, Response
+from flask import Flask, send_from_directory, jsonify
 import stockdatalayer
 import json
-#from flask.ext.sqlalchemy import SQLAlchemy
-#import os
-#from models import *
-
 app = Flask(__name__)
-#app.config.from_object(os.environ['APP_SETTINGS'])
-#db = SQLAlchemy(app)
 database = stockdatalayer.Datalayer()
-
-# How to convert joson.dumps to a response
-# http://code.runnable.com/UiHUJzdm7P5OAAA3/how-to-set-the-content-type-header-for-a-response-using-flask-for-python-and-json
-# Or just give up and do it manually
-# https://blogs.gnome.org/danni/2013/03/07/generating-json-from-sqlalchemy-objects/
-
-# Form of $http that worked
-# http://fdietz.github.io/recipes-with-angular-js/consuming-external-services/requesting-json-data-with-ajax.html
-# http://www.w3schools.com/angular/angular_http.asp
 
 @app.route("/data/<list_code>", methods=['GET'])
 def get_results(list_code):
-    try:
-        results = []
-        results = stockdatalayer.convert_to_dict(database.get_stocks_by_code(list_code.upper())[0:10])
-    except Exception as e:
-        print 'Error: ' + str(e)
+    filter_fields = ['symbol', 'sector', 'industry']
+    stock_list = [stock.convert_to_jsonifible(filter_fields) for stock in database.get_stocks_by_code(list_code.upper())]
 
-
-    #try:
-    #    encoder = stockdatalayer.new_alchemy_encoder(['symbol', 'sector', 'industry'])
-    #    stocks = json.dumps(results, cls=encoder, check_circular=False)
-    #except Exception as e:
-    #    print 'Error: ' + str(e)
-
-    #response = Response(stocks,  mimetype='application/json')
-    response = jsonify(records=results)
+    response = jsonify(records=stock_list)
     return response
 
 

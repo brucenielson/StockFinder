@@ -11,6 +11,9 @@ import logging
 import sqlite3
 from requests.exceptions import ConnectionError
 import inspect
+from sqlalchemy.ext.declarative import DeclarativeMeta
+import sqlalchemy
+import json
 
 Base = declarative_base()
 
@@ -103,7 +106,7 @@ class Datalayer():
         if refresh_from_web == False:
             result = self.session.query(StockListing).join(Category).filter_by(code=list_code).all()
         else:
-            stocklist = get_web_table_info(url, xpath)
+            stocklist = self.get_web_table_info(url, xpath)
             if stocklist == []:
                 raise Exception("Failed to load stock list from web") #TODO: Replace with a class based error
             cat_id = self.session.query(Category).filter_by(code=list_code).one().id
@@ -309,7 +312,7 @@ class Datalayer():
         num_headers = len(header_list)
 
         # Run through each column
-        table_data = get_web_table_info('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
+        table_data = self.get_web_table_info('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
         data_size = len(table_data)
 
         if data_size % num_headers != 0:
@@ -337,47 +340,114 @@ class Datalayer():
         return result
 
 
+    @staticmethod
+    def get_web_table_info(url, xpath):
 
+        def _get_result(url, xpath):
+            # try the new way
+            r = requests.get(url)
+            root = lxml.html.fromstring(r.content)
+            result = root.xpath(xpath)
+            return result
 
-
-
-def get_web_table_info(url, xpath):
-
-    def _get_result(url, xpath):
-        # try the new way
-        r = requests.get(url)
-        root = lxml.html.fromstring(r.content)
-        result = root.xpath(xpath)
-        return result
-
-    try:
-        # Try old way
-        # Use libxml to download the list of S&P500 companies and obtain the symbol table
-        page = lxml.html.parse(url)
-        result = page.xpath(xpath)
-    except:
         try:
-            result = _get_result(url, xpath)
-        except ConnectionError:
-            # If I get a ConnectionError, try again and then give up
+            # Try old way
+            # Use libxml to download the list of S&P500 companies and obtain the symbol table
+            page = lxml.html.parse(url)
+            result = page.xpath(xpath)
+        except:
             try:
                 result = _get_result(url, xpath)
             except ConnectionError:
-                # Failed twice, skip and move on
-                return []
-        except:
-            raise
+                # If I get a ConnectionError, try again and then give up
+                try:
+                    result = _get_result(url, xpath)
+                except ConnectionError:
+                    # Failed twice, skip and move on
+                    return []
+            except:
+                raise
 
-    result = [str(item) for item in result]
+        result = [str(item) for item in result]
 
-    return result
-
-
+        return result
 
 
+    @staticmethod
+    def add_new_column(table_name, new_column, column_type, default_val=None, database_name='beta.db'):
+        # Connecting to the database file
+        conn = sqlite3.connect(database_name)
+        c = conn.cursor()
 
-    
-class Stock(Base):
+        if default_val == None:
+            c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
+                    .format(tn=table_name, cn=new_column, ct=column_type))
+        else:
+            c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
+                    .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
+
+        # Committing changes and closing the connection to the database file
+        conn.commit()
+        conn.close()
+
+
+
+
+# http://stackoverflow.com/questions/5022066/how-to-serialize-sqlalchemy-result-to-json
+# http://solvedstack.com/questions/how-to-serialize-sqlalchemy-result-to-json
+# A class used to allow ORM to turn itself to json
+class JsonServices():
+    def convert_to_jsonifible(self, filter_fields = []):
+        _visited_objs = []
+
+        def _do_conversion(obj):
+            fields = {}
+            if isinstance(obj.__class__, DeclarativeMeta) or type(obj) == dict:
+                # don't re-visit self
+                if obj in _visited_objs:
+                    return None
+                _visited_objs.append(obj)
+
+                for field in [x for x in dir(obj) if (not x.startswith('_')) and x != 'metadata' and x!=obj.convert_to_jsonifible.__name__ and x!=obj.convert_to_json.__name__ and \
+                        (filter_fields == [] or x in filter_fields)]:
+                    val = obj.__getattribute__(field)
+
+                    # is this field another SQLalchemy object, or a list of SQLalchemy objects?
+                    if isinstance(val.__class__, DeclarativeMeta) or type(val) == sqlalchemy.orm.collections.InstrumentedList or type(val) == list:
+                        # This is another sqlalchemy object, so recursively evaluate
+                        fields[field] = _do_conversion(val)
+
+                    elif inspect.ismethod(val):
+                        # This is a method, so call it and get the value back
+                        fields[field] = val()
+
+                    elif (type(val) == str or
+                        type(val) == float or
+                        type(val) == unicode or
+                        type(val) == int or
+                        type(val) == type(None)):
+                        fields[field] = val
+                    else:
+                        fields[field] = str(val)
+
+                # a json-encodable dict
+                return fields
+            elif type(obj) == sqlalchemy.orm.collections.InstrumentedList or type(obj) == list:
+                items = [_do_conversion(item) for item in obj]
+                return items
+            else:
+                raise Exception(TypeError)
+
+        return _do_conversion(self)
+
+
+
+    def convert_to_json(self, filter_fields=[]):
+        return json.dumps(self.convert_to_jsonifible(filter_fields))
+
+
+
+class Stock(Base, JsonServices):
     __tablename__ = 'stock'
     
     # Company Data - Rarely updates
@@ -444,115 +514,9 @@ class Stock(Base):
     def __repr__(self):
         return "<Stock(symbol='%s', company_name='%s', id='%s')>" % \
                (self.symbol, self.company_name, self.id)
-    
 
 
-from sqlalchemy.ext.declarative import DeclarativeMeta
-import sqlalchemy
-import json
-# http://stackoverflow.com/questions/5022066/how-to-serialize-sqlalchemy-result-to-json
-#http://solvedstack.com/questions/how-to-serialize-sqlalchemy-result-to-json
-def new_alchemy_encoder(_fields_to_expand = []):
-    _visited_objs = []
-
-    class AlchemyEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj.__class__, DeclarativeMeta):
-                # don't re-visit self
-                if obj in _visited_objs:
-                    return None
-                _visited_objs.append(obj)
-
-                # go through each field in this SQLalchemy class
-                fields = {}
-
-                if _fields_to_expand == []:
-                    fields_to_expand = [field for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']]
-                    _fields_to_expand.append(fields_to_expand)
-
-                for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata' and x in _fields_to_expand]:
-                    val = obj.__getattribute__(field)
-
-                    # is this field another SQLalchemy object, or a list of SQLalchemy objects?
-                    if isinstance(val.__class__, DeclarativeMeta):
-                        # This is another sqlalchemy object
-                        fields[field] = self.default(val)
-
-                    elif (isinstance(val, list) and len(val) > 0 and isinstance(val[0].__class__, DeclarativeMeta)):
-                        # This is a list of sqlalchemy objects, so explode them out
-                        list_objs = [self.default(item) for item in val]
-                        fields[field] = list_objs
-
-                    elif (type(val) == str or
-                        type(val) == list or
-                        type(val) == float or
-                        type(val) == dict or
-                        type(val) == unicode or
-                        type(val) == int or
-                        type(val) == type(None)):
-                        fields[field] = val
-                    else:
-                        fields[field] = str(val)
-
-                # a json-encodable dict
-                return fields
-
-            return json.JSONEncoder.default(self, obj)
-    return AlchemyEncoder
-
-
-def convert_to_dict(obj, _fields_to_expand = []):
-    _visited_objs = []
-
-    def _do_conversion(obj):
-        fields = {}
-        if isinstance(obj.__class__, DeclarativeMeta) or type(obj) == dict:
-            # don't re-visit self
-            if obj in _visited_objs:
-                return None
-            _visited_objs.append(obj)
-
-            for field in [x for x in dir(obj) if (not x.startswith('_')) and x != 'metadata' and (_fields_to_expand == [] or x in _fields_to_expand)]:
-                val = obj.__getattribute__(field)
-
-                # is this field another SQLalchemy object, or a list of SQLalchemy objects?
-                if isinstance(val.__class__, DeclarativeMeta) or type(val) == sqlalchemy.orm.collections.InstrumentedList or type(val) == list:
-                    # This is another sqlalchemy object, so recursively evaluate
-                    fields[field] = _do_conversion(val)
-
-                elif inspect.ismethod(val):
-                    # This is a method, so call it and get the value back
-                    fields[field] = val()
-
-                elif (type(val) == str or
-                    type(val) == float or
-                    type(val) == unicode or
-                    type(val) == int or
-                    type(val) == type(None)):
-                    fields[field] = val
-                else:
-                    fields[field] = str(val)
-
-            # a json-encodable dict
-            return fields
-        elif type(obj) == sqlalchemy.orm.collections.InstrumentedList or type(obj) == list:
-            items = [_do_conversion(item) for item in obj]
-            return items
-        else:
-            raise Exception(TypeError)
-
-    return _do_conversion(obj)
-
-
-def test_encoder():
-    datalayer = Datalayer()
-    stocks = datalayer.get_stocks(['T', 'GOOG'])
-    #decoded = convert_to_dict(stocks, ['symbol', 'sector', 'industry'])
-    decoded = convert_to_dict(stocks)
-    print decoded
-
-
-class Dividend(Base):
+class Dividend(Base, JsonServices):
     __tablename__ = 'dividend_history'
         
     id = Column(Integer, primary_key=True)
@@ -571,9 +535,7 @@ class Dividend(Base):
                (self.stock.symbol, self.dividend_date, self.dividend, self.id)
 
 
-
-
-class Note(Base):
+class Note(Base, JsonServices):
     __tablename__ = 'stock_note'
 
     id = Column(Integer, primary_key=True)
@@ -587,7 +549,7 @@ class Note(Base):
     
 
 
-class StockListing(Base):
+class StockListing(Base, JsonServices):
     __tablename__ = 'stock_listing'
     id = Column(Integer, primary_key=True)
     symbol = Column(String(5), nullable=False) #unique=True
@@ -596,7 +558,7 @@ class StockListing(Base):
     def __repr__(self):
         return "<StockListing(symbol='%s', category='%s', id='%s')>" % (self.symbol, self.category, self.id)
 
-class Category(Base):
+class Category(Base, JsonServices):
     __tablename__ = 'category'
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True, nullable=False)
@@ -610,64 +572,12 @@ class Category(Base):
 
 
 
-def add_new_column(table_name, new_column, column_type, default_val=None, database_name='beta.db'):
-    # Connecting to the database file
-    conn = sqlite3.connect(database_name)
-    c = conn.cursor()
-
-    if default_val == None:
-        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
-                .format(tn=table_name, cn=new_column, ct=column_type))
-    else:
-        c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
-                .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
-
-    # Committing changes and closing the connection to the database file
-    conn.commit()
-    conn.close()
+def test_encoder():
+    datalayer = Datalayer()
+    stocks = datalayer.get_stocks(['T', 'GOOG'])
+    #decoded = convert_to_dict(stocks, )
+    for stock in stocks:
+        decoded = stock.convert_to_jsonifible()
+        print decoded
 
 
-
-
-"""
-def test_database():
-    session = initialize_datalayer()
-    stock1 = Stock()
-    dividend1 = Dividend()
-    dividend2 = Dividend()
-
-    try:
-        stock3 = session.query(Stock).filter_by(symbol='TC').one()
-
-        if type(stock3) == Stock:
-            session.delete(stock3)
-            session.commit()
-    except:
-        pass
-
-    stock1.company_name = "The Company"
-    stock1.symbol = 'TC'
-    stock1.eps = 1.5
-    stock1.forward_div = 2.6
-
-
-    dividend1.dividend = .45
-    dividend1.dividend_date = dt.datetime.strptime('4/5/2015',"%m/%d/%Y")
-    stock1.dividends.append(dividend1)
-    dividend2.dividend = .44
-    dividend2.dividend_date = dt.datetime.strptime('4/5/2014',"%m/%d/%Y")
-    stock1.dividends.append(dividend2)
-
-    session.add(stock1)
-    session.commit()
-
-    stock2 = session.query(Stock).filter_by(symbol='TC').one()
-    return stock2
-
-
-
-
-
-
-
-"""

@@ -8,7 +8,7 @@ var app = angular.module('divApp', []);
 app.controller('DivendScoutController', function($scope, $http) {
   divData = this;
   //$http.get("http://www.w3schools.com/angular/customers.php")
-  $http.get("http://127.0.0.1:5000/data/SNP")
+  $http.get("/data/SNP")
   //$http.get("SNP.json")
     .success(function(response) {
       //divData.names = response.records;

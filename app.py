@@ -22,20 +22,20 @@ database = stockdatalayer.Datalayer()
 @app.route("/data/<list_code>", methods=['GET'])
 def get_results(list_code):
     try:
-        results = {}
-        results["records"] = database.get_stocks_by_code(list_code.upper())[0:10]
+        results = []
+        results = stockdatalayer.convert_to_dict(database.get_stocks_by_code(list_code.upper())[0:10])
     except Exception as e:
         print 'Error: ' + str(e)
 
-    try:
-        encoder = stockdatalayer.new_alchemy_encoder(['symbol', 'sector', 'industry'])
-        stocks = json.dumps(results, cls=encoder, check_circular=False)
-        #print stocks
-    except Exception as e:
-        print 'Error: ' + str(e)
 
-    response = Response(stocks,  mimetype='application/json')
-    print response
+    #try:
+    #    encoder = stockdatalayer.new_alchemy_encoder(['symbol', 'sector', 'industry'])
+    #    stocks = json.dumps(results, cls=encoder, check_circular=False)
+    #except Exception as e:
+    #    print 'Error: ' + str(e)
+
+    #response = Response(stocks,  mimetype='application/json')
+    response = jsonify(records=results)
     return response
 
 

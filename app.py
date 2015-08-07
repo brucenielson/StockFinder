@@ -25,30 +25,19 @@ def get_results(list_code):
         results = {}
         results["records"] = database.get_stocks_by_code(list_code.upper())[0:10]
     except Exception as e:
-        print 'got error:' + str(e)
+        print 'Error: ' + str(e)
 
-    print 'at 1'
     try:
         encoder = stockdatalayer.new_alchemy_encoder(['symbol', 'sector', 'industry'])
         stocks = json.dumps(results, cls=encoder, check_circular=False)
         #print stocks
     except Exception as e:
-        print 'got error:' + str(e)
+        print 'Error: ' + str(e)
 
     response = Response(stocks,  mimetype='application/json')
     print response
     return response
 
-    print 'at 2'
-    print stocks
-    stocks_list = list(stocks)
-    try:
-        json_result = jsonify(results=stocks_list)
-    except Exception as e:
-        print 'got error:' + str(e)
-    print 'JSON'
-    print json_result
-    return json_result
 
 
 def test_code():

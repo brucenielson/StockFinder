@@ -12,12 +12,11 @@ app.controller('DivendScoutController', function($scope, $http) {
   //$http.get("SNP.json")
     .success(function(response) {
       //divData.names = response.records;
-      console.log("here");
-      console.log(response);
+      //console.log(response);
       divData.stocks = response['records']
     })
     .error(function(data, status, headers, config) {
-      console.log("error");
+      console.log("Error");
       console.log("data: " + data);
       console.log("status: " + status);
       console.log("header: " + headers);

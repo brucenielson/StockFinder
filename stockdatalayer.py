@@ -10,9 +10,10 @@ import stockdatabase
 import logging
 import sqlite3
 from requests.exceptions import ConnectionError
-
+import inspect
 
 Base = declarative_base()
+
 
 # ORM and Stock Database Classes and Functions
 
@@ -427,10 +428,18 @@ class Stock(Base):
 
     # Calculations
     def cash_per_share(self):
-        return float(self.total_cash) / float(self.num_shares)
+        if self.total_cash != None and self.num_shares != None and self.num_shares != 0:
+            return float(self.total_cash) / float(self.num_shares)
+        else:
+            return None
+
 
     def debt_per_share(self):
-        return float(self.total_debt) / float(self.num_shares)
+        if self.total_debt != None and self.num_shares != None and self.num_shares != 0:
+            return float(self.total_debt) / float(self.num_shares)
+        else:
+            return None
+
 
     def __repr__(self):
         return "<Stock(symbol='%s', company_name='%s', id='%s')>" % \
@@ -453,7 +462,6 @@ def new_alchemy_encoder(_fields_to_expand = []):
                 if obj in _visited_objs:
                     return None
                 _visited_objs.append(obj)
-                _fields_to_expand.append(obj)
 
                 # go through each field in this SQLalchemy class
                 fields = {}
@@ -493,7 +501,55 @@ def new_alchemy_encoder(_fields_to_expand = []):
     return AlchemyEncoder
 
 
+def convert_to_dict(obj, _fields_to_expand = []):
+    _visited_objs = []
 
+    def _do_conversion(obj):
+        fields = {}
+        if isinstance(obj.__class__, DeclarativeMeta) or type(obj) == dict:
+            # don't re-visit self
+            if obj in _visited_objs:
+                return None
+            _visited_objs.append(obj)
+
+            for field in [x for x in dir(obj) if (not x.startswith('_')) and x != 'metadata' and (_fields_to_expand == [] or x in _fields_to_expand)]:
+                val = obj.__getattribute__(field)
+
+                # is this field another SQLalchemy object, or a list of SQLalchemy objects?
+                if isinstance(val.__class__, DeclarativeMeta) or type(val) == sqlalchemy.orm.collections.InstrumentedList or type(val) == list:
+                    # This is another sqlalchemy object, so recursively evaluate
+                    fields[field] = _do_conversion(val)
+
+                elif inspect.ismethod(val):
+                    # This is a method, so call it and get the value back
+                    fields[field] = val()
+
+                elif (type(val) == str or
+                    type(val) == float or
+                    type(val) == unicode or
+                    type(val) == int or
+                    type(val) == type(None)):
+                    fields[field] = val
+                else:
+                    fields[field] = str(val)
+
+            # a json-encodable dict
+            return fields
+        elif type(obj) == sqlalchemy.orm.collections.InstrumentedList or type(obj) == list:
+            items = [_do_conversion(item) for item in obj]
+            return items
+        else:
+            raise Exception(TypeError)
+
+    return _do_conversion(obj)
+
+
+def test_encoder():
+    datalayer = Datalayer()
+    stocks = datalayer.get_stocks(['T', 'GOOG'])
+    #decoded = convert_to_dict(stocks, ['symbol', 'sector', 'industry'])
+    decoded = convert_to_dict(stocks)
+    print decoded
 
 
 class Dividend(Base):

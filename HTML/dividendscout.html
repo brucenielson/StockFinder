@@ -81,6 +81,7 @@
       <thead>
         <tr>
             <th>Symbol</th>
+            <th>Name</th>
             <th>Sector</th>
             <th>Industry</th>
             <th>Price</th>
@@ -95,19 +96,18 @@
             <th>Warn</th>
             <th>Adjusted</th>
             <th>Etc</th>
-            <th>Etc</th>
         </tr>
       </thead>
       <tbody>
         <tr data-ng-repeat="stock in divdata.stocks">
             <td>{{stock.symbol}}</td>
+            <td>{{stock.company_name}}</td>
             <td>{{stock.sector}}</td>
             <td>{{stock.industry}}</td>
             <td>{{stock.last_price | currency}}</td>
             <td>{{stock.year_low | currency}}</td>
             <td>{{stock.year_high | currency}}</td>
             <td>{{stock.trailing_div | currency}}</td>
-            <td></td>
             <td></td>
             <td></td>
             <td></td>

@@ -6,12 +6,13 @@ database = stockdatalayer.Datalayer()
 
 @app.route("/data/<list_code>", methods=['GET'])
 def get_results(list_code):
-    filter_fields = ['symbol', 'sector', 'industry', 'eps', 'last_price', 'year_low', 'year_high', 'trailing_div']
+    filter_fields = ['symbol', 'sector', 'industry', 'eps', 'last_price', 'year_low', 'year_high', 'trailing_div', 'company_name']
     stock_list = database.get_stocks_by_code(list_code.upper())
     database.get_real_time_quotes(stock_list)
     jsonifible = [stock.convert_to_jsonifible(filter_fields) for stock in stock_list]
     response = jsonify(records=jsonifible)
     return response
+
 
 
 def test_get_results():

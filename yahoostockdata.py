@@ -55,7 +55,7 @@ LAST_UPDATED = 8
 
 
 def _process_symbol_list(symbol_list):
-    if type(symbol_list) == type(str()):
+    if type(symbol_list) == type(str()) or type(symbol_list) == unicode:
         symbol_list = [symbol for symbol in symbol_list.split(", ")]
 
         #symbol_list = [symbol_list]
@@ -194,7 +194,7 @@ def get_dividend_history_data(symbol_list):
 
 
 
-def get_quote_data(symbol_list, test=False):
+def get_quote_data(symbol_list):
     """
     get_quote_data() takes a symbol list and returns Quote table data for storing
     in the database.

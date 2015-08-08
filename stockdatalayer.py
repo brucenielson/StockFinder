@@ -490,11 +490,25 @@ class Stock(Base, JsonServices):
     trailing_div = Column(Float)
     last_dividend_date = Column(Float)
     last_ex_dividend_date = Column(Float)
-
+    # Relationships to other ORM classes
     dividends = relationship("Dividend", backref='stock',
                     cascade="all, delete, delete-orphan")
     notes = relationship("Note", backref='stock',
                     cascade="all, delete, delete-orphan")
+    # Quote fields -- these fields are not in the database and are always updated 'live' via some other services
+    last_price = 0.0
+    year_low = 0.0
+    year_high = 0.0
+    projected_div = 0.0
+
+    # Get a real time stock quote
+    def get_quote(self):
+        data = yahoostockdata.get_quote_data(self.symbol)
+        self.last_price = data[self.symbol]['LastTradePriceOnly']
+        self.year_low = data[self.symbol]['YearLow']
+        self.year_high = data[self.symbol]['YearHigh']
+        self.projected_div = data[self.symbol]['DividendShare']
+
 
     # Calculations
     def cash_per_share(self):
@@ -509,6 +523,7 @@ class Stock(Base, JsonServices):
             return float(self.total_debt) / float(self.num_shares)
         else:
             return None
+
 
 
     def __repr__(self):

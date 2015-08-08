@@ -1,0 +1,30 @@
+/* New way of prioritization */
+#override-bootstrap .page-header{ /* 100+1=101 priority score, yay! See: http://stackoverflow.com/questions/20721248/best-way-to-override-bootstrap-css*/
+    padding-bottom: 3px;
+    margin: 5px 0 5px;
+    border-bottom: 1px solid #eee;
+}
+
+
+#override-bootstrap .h1, .h2, .h3, h1, h2, h3 {
+    margin-top: 10px;
+    margin-bottom: 5px;
+    color: #222
+}
+
+
+
+
+
+/* The key to fixing this turned out to be that I needed to look in the bootstrap CSS and make sure I was using the same 'tags' they were to make sure I got priority */
+#override-bootstrap .table-condensed > thead > tr > th,
+.table-condensed > tbody > tr > th,
+.table-condensed > tfoot > tr > th,
+.table-condensed > thead > tr > td,
+.table-condensed > tbody > tr > td,
+.table-condensed > tfoot > tr > td {
+  font-size: 9px;
+  padding: 4px;
+  line-height: 1;
+}
+

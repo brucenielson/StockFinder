@@ -2,18 +2,18 @@
 <html lang="en" data-ng-app="divApp">
 <head>
     <meta charset="utf-8">
-    <title>Dividend Finder</title>
-    <link rel="stylesheet" href="css/app.css"/>
+    <title>Dividend Scout</title>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <!-- Latest compiled and minified CSS -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <!-- Optional theme -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
     <!-- Latest compiled and minified JavaScript -->
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
     <!-- Custom CSS -->
-
+    <link rel="stylesheet" type="text/css" href="css/custom.css">
+    <!-- My Angular Code -->
     <script src="js/divscout.js"></script>
     <style>
     body {
@@ -30,7 +30,8 @@
     <![endif]-->
 
 </head>
-<body class="container">
+<!--Using Bootstrap: http://www.tutorialrepublic.com/twitter-bootstrap-tutorial/bootstrap-typography.php -->
+<body class="container" id="override-bootstrap">
     <!-- Navigation -->
     <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
         <div class="container">
@@ -70,48 +71,42 @@
     </nav>
 
     <div class="page-header">
-        <img id="div-type-image" src="http://placehold.it/50x50" align="left" hspace="6">
+        <img id="div-type-image" src="img/snp500.png" align="left" hspace="6">
 
-        <h1 id="page_title">S&P 500 <small id="sub_title">Large Cap Dividend Stocks</small></h1>
+        <h3 id="page_title">S&P 500 <small id="sub_title">Large Cap Dividend Stocks</small></h3>
     </div>
 
 <div class="row" data-ng-controller="DivendScoutController as divdata">
-    <div class="col-md-12 table-responsive">
-    <table class="table table-striped table-bordered table-hover table-condensed">
+    <div class="col-md-10 table-responsive">
+    <table class="table-condensed table table-striped table-bordered table-hover">
       <thead>
         <tr>
             <th>Symbol</th>
+            <th>Price</th>
+            <th>Dividend</th>
+            <th>Yield</th>
             <th>Name</th>
             <th>Sector</th>
             <th>Industry</th>
-            <th>Price</th>
             <th>Low</th>
             <th>High</th>
-            <th>Dividend</th>
-            <th>Yield</th>
-            <th>W/O Bonus</th>
             <th>EPS</th>
             <th>Payout</th>
-            <th>Div</th>
             <th>Warn</th>
             <th>Adjusted</th>
-            <th>Etc</th>
         </tr>
       </thead>
       <tbody>
         <tr data-ng-repeat="stock in divdata.stocks">
             <td>{{stock.symbol}}</td>
+            <td>{{stock.last_price | currency}}</td>
+            <td>{{stock.trailing_div | currency}}</td>
+            <td>{{stock.div_yield * 100.0 | number:2}}%</td>
             <td>{{stock.company_name}}</td>
             <td>{{stock.sector}}</td>
             <td>{{stock.industry}}</td>
-            <td>{{stock.last_price | currency}}</td>
             <td>{{stock.year_low | currency}}</td>
             <td>{{stock.year_high | currency}}</td>
-            <td>{{stock.trailing_div | currency}}</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
             <td></td>
             <td></td>
             <td></td>

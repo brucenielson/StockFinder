@@ -533,6 +533,12 @@ class Stock(Base, JsonServices):
         else:
             return None
 
+    def div_yield(self):
+        if self.trailing_div != None and self.last_price != None and self.last_price != 0:
+            return float(self.trailing_div) / float(self.last_price)
+        else:
+            return 0.0
+
 
 
     def __repr__(self):

@@ -391,6 +391,14 @@ class Datalayer():
         conn.close()
 
 
+    # Takes a list of Stocks and gets quote data (real time) for them
+    @staticmethod
+    def get_real_time_quotes(stock_list):
+        symbol_list = [stock.symbol for stock in stock_list if type(stock) == Stock]
+        data = yahoostockdata.download_yahoo_quote_data(symbol_list)
+        for stock in stock_list:
+            if type(stock) == Stock:
+                stock.get_quote(data)
 
 
 # http://stackoverflow.com/questions/5022066/how-to-serialize-sqlalchemy-result-to-json
@@ -499,15 +507,16 @@ class Stock(Base, JsonServices):
     last_price = 0.0
     year_low = 0.0
     year_high = 0.0
-    projected_div = 0.0
+    trailing_div = 0.0
 
     # Get a real time stock quote
-    def get_quote(self):
-        data = yahoostockdata.get_quote_data(self.symbol)
+    def get_quote(self, data=None):
+        if data==None:
+            data = yahoostockdata.get_quote_data(self.symbol)
         self.last_price = data[self.symbol]['LastTradePriceOnly']
         self.year_low = data[self.symbol]['YearLow']
         self.year_high = data[self.symbol]['YearHigh']
-        self.projected_div = data[self.symbol]['DividendShare']
+        self.trailing_div =  data[self.symbol]['TrailingAnnualDividendYield']
 
 
     # Calculations

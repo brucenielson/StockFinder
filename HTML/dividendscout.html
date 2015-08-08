@@ -86,8 +86,8 @@
             <th>Price</th>
             <th>Low</th>
             <th>High</th>
-            <th>TT Yield</th>
-            <th>Projected</th>
+            <th>Dividend</th>
+            <th>Yield</th>
             <th>W/O Bonus</th>
             <th>EPS</th>
             <th>Payout</th>
@@ -103,11 +103,11 @@
             <td>{{stock.symbol}}</td>
             <td>{{stock.sector}}</td>
             <td>{{stock.industry}}</td>
-            <td>{{stock.last_price}}</td>
-            <td>{{stock.year_low}}</td>
-            <td>{{stock.year_high}}</td>
+            <td>{{stock.last_price | currency}}</td>
+            <td>{{stock.year_low | currency}}</td>
+            <td>{{stock.year_high | currency}}</td>
+            <td>{{stock.trailing_div | currency}}</td>
             <td></td>
-            <td>{{stock.projected_div}}</td>
             <td></td>
             <td></td>
             <td></td>

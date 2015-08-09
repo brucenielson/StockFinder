@@ -416,8 +416,9 @@ class JsonServices():
                     return None
                 _visited_objs.append(obj)
 
-                for field in [x for x in dir(obj) if (not x.startswith('_')) and x != 'metadata' and x!=obj.convert_to_jsonifible.__name__ and x!=obj.convert_to_json.__name__ and \
-                        (filter_fields == [] or x in filter_fields)]:
+                for field in [x for x in dir(obj) if (not x.startswith('_')) and x != 'metadata' and x!=obj.convert_to_jsonifible.__name__ and \
+                        x!=obj.convert_to_json.__name__ and x!='get_quote' and (filter_fields == [] or x in filter_fields) and x not in _visited_objs]:
+
                     val = obj.__getattribute__(field)
 
                     # is this field another SQLalchemy object, or a list of SQLalchemy objects?

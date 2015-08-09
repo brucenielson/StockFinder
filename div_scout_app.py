@@ -14,14 +14,18 @@ def get_results(list_code):
     return response
 
 
-
+import time
 def test_get_results():
+    start_time = time.clock()
     filter_fields = []
     stock_list = database.get_stocks_by_code("SNP")
     database.get_real_time_quotes(stock_list)
+    for stock in stock_list:
+        stock._analyze_dividend_history()
     jsonifible = [stock.convert_to_jsonifible(filter_fields) for stock in stock_list]
-    response = jsonify(records=jsonifible)
-    return response
+    end_time = time.clock()
+    print "Retriving Data: " + str(end_time-start_time) + " seconds"
+    return jsonifible
 
 
 

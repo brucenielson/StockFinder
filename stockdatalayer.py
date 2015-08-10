@@ -519,6 +519,10 @@ class Stock(Base, JsonServices):
     trailing_div = Column(Float)
     last_dividend_date = Column(Float)
     last_ex_dividend_date = Column(Float)
+    # Dividend analysis attributes
+    #_years_of_dividends = Column(Float)
+    #years_div_growth = Column(Float)
+
     # Relationships to other ORM classes
     dividends = relationship("Dividend", backref='stock',
                     cascade="all, delete, delete-orphan")
@@ -562,19 +566,18 @@ class Stock(Base, JsonServices):
 
 
     # Dividend history analysis methods and instance variables
-    _years_of_dividends = 0
+    _years_of_dividends = None
     _dividends_no_bonus = None
-    _start_of_div_growth_index = 0
+    _start_of_div_growth_index = None
     _div_growth_start_date = None
-    _total_div_growth_amt = 0.0
-    _total_div_growth_rate = 0.0
-    _div_growth_20 = 0.0
-    _div_growth_15 = 0.0
-    _div_growth_10 = 0.0
-    _div_growth_5 = 0.0
-    _div_growth_3 = 0.0
-    _div_growth_1 = 0.0
-
+    _total_div_growth_amt = None
+    _total_div_growth_rate = None
+    _div_growth_20 = None
+    _div_growth_15 = None
+    _div_growth_10 = None
+    _div_growth_5 = None
+    _div_growth_3 = None
+    _div_growth_1 = None
 
     def _analyze_dividend_history(self):
 
@@ -640,8 +643,12 @@ class Stock(Base, JsonServices):
                     div_growth_rate = div_growth_amt / float(div.dividend)
                     return div_growth_rate
 
-            # Raise an error if we don't find the right dividend
-            raise Exception("Not enough dividends in dividend history for " + str(years) +".")
+            # We ran out of dividends, so just take the very first one:
+            div_hist_len = len(div_hist)
+            div = div_hist[div_hist_len-1]
+            div_growth_amt = float(most_recent_div.dividend) - float(div.dividend)
+            div_growth_rate = div_growth_amt / float(div.dividend)
+            return div_growth_rate
 
 
 
@@ -706,8 +713,8 @@ class Stock(Base, JsonServices):
             else:
                 last_year_of_growth = start_year
 
-            # We found last year of growth - now translate that to last index to search for growth in: i.e. only search one year beyond last year of growth
-            div_hist = [div for div in div_hist if div.dividend_date.year >= last_year_of_growth-1]
+            # We found last year of growth - now translate that to last index to search for growth in: Not sure if I should search one year beyond or not. You get problems either way
+            div_hist = [div for div in div_hist if div.dividend_date.year >= last_year_of_growth]
             last_index = len(div_hist)-1
 
             # Now find last dividend of growth within restricted range
@@ -782,10 +789,23 @@ class Stock(Base, JsonServices):
                 self._div_growth_1  = get_div_growth(div_hist, 1)
 
 
+    """
+    # Public interface for dividend attributes
+    def years_dividends(self):
+        if self._years_of_dividends == None:
+            self._analyze_dividend_history()
+        return self._years_of_dividends
 
-
-
-
+    def years_div_growth(self):
+        if len(self.dividends) > 1:
+            if self._div_growth_start_date == None:
+                self._analyze_dividend_history()
+            start_div_date = self._div_growth_start_date
+            most_recent_div_date = self.dividends[0].dividend_date
+            return ((most_recent_div_date - start_div_date).days / 365.25)
+        else:
+            return None
+    """
 
 
     def __repr__(self):

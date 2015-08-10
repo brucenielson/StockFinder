@@ -520,8 +520,8 @@ class Stock(Base, JsonServices):
     last_dividend_date = Column(Float)
     last_ex_dividend_date = Column(Float)
     # Dividend analysis attributes
-    #_years_of_dividends = Column(Float)
-    #years_div_growth = Column(Float)
+    years_dividends = Column(Float)
+    years_div_growth = Column(Float)
 
     # Relationships to other ORM classes
     dividends = relationship("Dividend", backref='stock',
@@ -566,7 +566,6 @@ class Stock(Base, JsonServices):
 
 
     # Dividend history analysis methods and instance variables
-    _years_of_dividends = None
     _dividends_no_bonus = None
     _start_of_div_growth_index = None
     _div_growth_start_date = None
@@ -748,7 +747,7 @@ class Stock(Base, JsonServices):
 
         start_div_date = div_hist[last_index].dividend_date
         div_hist_len = ((most_recent_div_date - start_div_date).days / 365.25)
-        self._years_of_dividends = div_hist_len
+        self.years_dividends = div_hist_len
 
         # Determine Dividend Growth
         # "dividend growth" is misleading here. We're really looking for growth or stability.
@@ -766,26 +765,26 @@ class Stock(Base, JsonServices):
         self._start_of_div_growth_index = find_start_of_div_growth(self._dividends_no_bonus, tot_divs_per_year_no_bonus)
         div_growth_start_div = self.dividends[self._start_of_div_growth_index]
         self._div_growth_start_date = div_growth_start_div.dividend_date
-        div_growth_len = ((most_recent_div_date - self._div_growth_start_date).days / 365.25)
+        self.years_div_growth = ((most_recent_div_date - self._div_growth_start_date).days / 365.25)
 
         # Determine Total Growth
-        if div_growth_len >= 1.0:
+        if self.years_div_growth >= 1.0:
             most_recent_div = div_hist[0]
 
             self._total_div_growth_amt = float(most_recent_div.dividend) - float(div_growth_start_div.dividend)
             self._total_div_growth_rate = self._total_div_growth_amt / float(div_growth_start_div.dividend)
             # Growth amounts by year
-            if div_growth_len >= 20.0:
+            if self.years_div_growth >= 20.0:
                 self._div_growth_20 = get_div_growth(div_hist, 20) / 20.0
-            if div_growth_len >= 15.0:
+            if self.years_div_growth >= 15.0:
                 self._div_growth_15  = get_div_growth(div_hist, 15) / 15.0
-            if div_growth_len >= 10.0:
+            if self.years_div_growth >= 10.0:
                 self._div_growth_10  = get_div_growth(div_hist, 10) / 10.0
-            if div_growth_len >= 5.0:
+            if self.years_div_growth >= 5.0:
                 self._div_growth_5  = get_div_growth(div_hist, 5) / 5.0
-            if div_growth_len >= 3.0:
+            if self.years_div_growth >= 3.0:
                 self._div_growth_3 = get_div_growth(div_hist, 3) / 3.0
-            if div_growth_len >= 1.0:
+            if self.years_div_growth >= 1.0:
                 self._div_growth_1  = get_div_growth(div_hist, 1)
 
 

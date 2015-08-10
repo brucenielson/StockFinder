@@ -9,9 +9,11 @@ database = stockdatalayer.Datalayer()
 def get_results(list_code):
     print 'start request'
     start_time = time.clock()
-    filter_fields = ['symbol', 'sector', 'industry', 'eps', 'last_price', 'year_low', 'year_high', 'trailing_div', 'company_name', 'div_yield']
+    filter_fields = ['symbol', 'sector', 'industry', 'eps', 'last_price', 'year_low', 'year_high', 'trailing_div', 'company_name', 'div_yield', 'years_div_growth']
     stock_list = database.get_stocks_by_code(list_code.upper())
     database.get_real_time_quotes(stock_list)
+    #for stock in stock_list:
+    #    stock._analyze_dividend_history()
     jsonifible = [stock.convert_to_jsonifible(filter_fields) for stock in stock_list]
     response = jsonify(records=jsonifible)
     end_time = time.clock()

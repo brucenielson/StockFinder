@@ -218,22 +218,30 @@ class Datalayer():
 
 
     @staticmethod
-    def add_new_column(table_name, new_column, column_type, default_val=None, database_name='stocks.db'):
+    def add_new_column(table_name, column_name, column_type, default_val=None, database_name='stocks.db'):
         # Connecting to the database file
         conn = sqlite3.connect(database_name)
         c = conn.cursor()
 
         if default_val == None:
             c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
-                    .format(tn=table_name, cn=new_column, ct=column_type))
+                    .format(tn=table_name, cn=column_name, ct=column_type))
         else:
             c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
-                    .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
+                    .format(tn=table_name, cn=column_name, ct=column_type, df=default_val))
 
         # Committing changes and closing the connection to the database file
         conn.commit()
         conn.close()
 
+
+
+    @classmethod
+    def add_column_to_database(cls, column, default_val=None, database_name='stocks.db'):
+        type = column.type
+        column_name = column.name
+        table_name = list(column.parent._all_tables)[0].name
+        cls.add_new_column(table_name, column_name, type, default_val, database_name)
 
 
 
@@ -547,17 +555,19 @@ class Stock(Base, JsonServices):
     # Dividend analysis attributes that are saved to database
     years_dividends = Column(Float)
     years_div_growth = Column(Float)
+    # New
+    start_of_div_growth_index = Column(Integer)
+    total_div_growth_rate = Column(Float)
+    div_growth_20 = Column(Float)
+    div_growth_15 = Column(Float)
+    div_growth_10 = Column(Float)
+    div_growth_5 = Column(Float)
+    div_growth_3 = Column(Float)
+    div_growth_1 = Column(Float)
+    # Dividend analysis attributes not saved to the database
     _dividends_no_bonus = None
-    _start_of_div_growth_index = None
     _div_growth_start_date = None
     _total_div_growth_amt = None
-    _total_div_growth_rate = None
-    _div_growth_20 = None
-    _div_growth_15 = None
-    _div_growth_10 = None
-    _div_growth_5 = None
-    _div_growth_3 = None
-    _div_growth_1 = None
 
     # Relationships to other ORM classes
     dividends = relationship("Dividend", backref='stock',
@@ -809,8 +819,8 @@ class Stock(Base, JsonServices):
 
         # TODO Calculate a trailing year of dividends not including bonus dividends
 
-        self._start_of_div_growth_index = find_start_of_div_growth(self._dividends_no_bonus, tot_divs_per_year_no_bonus)
-        div_growth_start_div = self.dividends[self._start_of_div_growth_index]
+        self.start_of_div_growth_index = find_start_of_div_growth(self._dividends_no_bonus, tot_divs_per_year_no_bonus)
+        div_growth_start_div = self.dividends[self.start_of_div_growth_index]
         self._div_growth_start_date = div_growth_start_div.dividend_date
         self.years_div_growth = ((most_recent_div_date - self._div_growth_start_date).days / 365.25)
 
@@ -819,39 +829,36 @@ class Stock(Base, JsonServices):
             most_recent_div = div_hist[0]
 
             self._total_div_growth_amt = float(most_recent_div.dividend) - float(div_growth_start_div.dividend)
-            self._total_div_growth_rate = self._total_div_growth_amt / float(div_growth_start_div.dividend)
+            self.total_div_growth_rate = self._total_div_growth_amt / float(div_growth_start_div.dividend)
             # Growth amounts by year
             if self.years_div_growth >= 20.0:
-                self._div_growth_20 = get_div_growth(div_hist, 20) / 20.0
+                self.div_growth_20 = get_div_growth(div_hist, 20) / 20.0
             if self.years_div_growth >= 15.0:
-                self._div_growth_15  = get_div_growth(div_hist, 15) / 15.0
+                self.div_growth_15  = get_div_growth(div_hist, 15) / 15.0
             if self.years_div_growth >= 10.0:
-                self._div_growth_10  = get_div_growth(div_hist, 10) / 10.0
+                self.div_growth_10  = get_div_growth(div_hist, 10) / 10.0
             if self.years_div_growth >= 5.0:
-                self._div_growth_5  = get_div_growth(div_hist, 5) / 5.0
+                self.div_growth_5  = get_div_growth(div_hist, 5) / 5.0
             if self.years_div_growth >= 3.0:
-                self._div_growth_3 = get_div_growth(div_hist, 3) / 3.0
+                self.div_growth_3 = get_div_growth(div_hist, 3) / 3.0
             if self.years_div_growth >= 1.0:
-                self._div_growth_1  = get_div_growth(div_hist, 1)
+                self.div_growth_1  = get_div_growth(div_hist, 1)
 
 
-    """
     # Public interface for dividend attributes
-    def years_dividends(self):
-        if self._years_of_dividends == None:
-            self._analyze_dividend_history()
-        return self._years_of_dividends
+    def recent_div_growth(self):
+        list_growths = []
+        if self.div_growth_1 != None:
+            list_growths.append(self.div_growth_1)
+        if self.div_growth_3 != None:
+            list_growths.append(self.div_growth_3)
+        if self.div_growth_1 != None:
+            list_growths.append(self.div_growth_1)
 
-    def years_div_growth(self):
-        if len(self.dividends) > 1:
-            if self._div_growth_start_date == None:
-                self._analyze_dividend_history()
-            start_div_date = self._div_growth_start_date
-            most_recent_div_date = self.dividends[0].dividend_date
-            return ((most_recent_div_date - start_div_date).days / 365.25)
+        if len(list_growths) > 0:
+            return min(list_growths)
         else:
             return None
-    """
 
 
     def __repr__(self):

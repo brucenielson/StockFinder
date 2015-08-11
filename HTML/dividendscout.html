@@ -85,12 +85,12 @@
             <th>Price</th>
             <th>Dividend</th>
             <th>Yield</th>
+            <th>Yrs Div Gr</th>
             <th>Name</th>
             <th>Sector</th>
             <th>Industry</th>
             <th>Low</th>
             <th>High</th>
-            <th>Yrs Grow</th>
             <th>EPS</th>
             <th>Payout</th>
             <th>Warn</th>
@@ -103,13 +103,13 @@
             <td>{{stock.last_price | currency}}</td>
             <td>{{stock.trailing_div | currency}}</td>
             <td>{{stock.div_yield * 100.0 | number:2}}%</td>
+            <td>{{stock.years_div_growth | number:1}}</td>
             <td>{{stock.company_name}}</td>
             <td>{{stock.sector}}</td>
             <td>{{stock.industry}}</td>
             <td>{{stock.year_low | currency}}</td>
             <td>{{stock.year_high | currency}}</td>
-            <td>{{stock.years_div_growth | number:1}}</td>
-            <td></td>
+            <td>{{stock.eps | currency}}</td>
             <td></td>
             <td></td>
             <td></td>

@@ -12,6 +12,7 @@ import sqlite3
 from requests.exceptions import ConnectionError
 import inspect
 from sqlalchemy.ext.declarative import DeclarativeMeta
+from sqlalchemy import desc
 import sqlalchemy
 import json
 import datetime
@@ -38,7 +39,7 @@ class Datalayer():
         self.database_name = database_name
         self.engine = create_engine('sqlite:///'+database_name, echo=self.echo)
         Base.metadata.create_all(self.engine)
-        Session = sessionmaker(bind=self.engine)
+        Session = sessionmaker(bind=self.engine,autoflush=False)
         self.session = Session()
 
 
@@ -141,21 +142,130 @@ class Datalayer():
 
 
 
+
+
+    def get_cef_dividend_info(self, cef_symbol):
+        if not self.is_cef(cef_symbol):
+            raise Exception('Ticker symbol passed was not a CEF')
+
+        #header_list = get_web_stock_list('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr[1]/th/text()')
+        header_list = ['Ex-Date', 'NAV at Distribution', 'Long-Term Capital Gains', 'Short-Term Capital Gains', 'Dividend Income', 'Return of Capital', 'Distribution Total']
+        num_headers = len(header_list)
+
+        # Run through each column
+        table_data = self.get_web_table_info('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
+        data_size = len(table_data)
+
+        if data_size % num_headers != 0:
+            raise Exception('Data in table does not match expected number of columns')
+
+        i = 0
+        row = 0
+        result = []
+        while i < data_size:
+            # fill in one row
+            result.append({})
+            for j in range(0,num_headers):
+                header_label = header_list[j]
+                value = table_data[i+j]
+                if header_label == 'Ex-Date':
+                    value = yahoostockdata.convert_to_date(value)
+                else:
+                    value = yahoostockdata.convert_to_float(value)
+
+                result[row][header_list[j]] = value
+            result[row]['Symbol'] = cef_symbol
+            row += 1
+            i += num_headers
+
+        return result
+
+
+
+
+    @staticmethod
+    def get_web_table_info(url, xpath):
+
+        def _get_result(url, xpath):
+            # try the new way
+            r = requests.get(url)
+            root = lxml.html.fromstring(r.content)
+            result = root.xpath(xpath)
+            return result
+
+        try:
+            # Try old way
+            # Use libxml to download the list of S&P500 companies and obtain the symbol table
+            page = lxml.html.parse(url)
+            result = page.xpath(xpath)
+        except:
+            try:
+                result = _get_result(url, xpath)
+            except ConnectionError:
+                # If I get a ConnectionError, try again and then give up
+                try:
+                    result = _get_result(url, xpath)
+                except ConnectionError:
+                    # Failed twice, skip and move on
+                    return []
+            except:
+                raise
+
+        result = [str(item) for item in result]
+
+        return result
+
+
+
+    @staticmethod
+    def add_new_column(table_name, new_column, column_type, default_val=None, database_name='stocks.db'):
+        # Connecting to the database file
+        conn = sqlite3.connect(database_name)
+        c = conn.cursor()
+
+        if default_val == None:
+            c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
+                    .format(tn=table_name, cn=new_column, ct=column_type))
+        else:
+            c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
+                    .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
+
+        # Committing changes and closing the connection to the database file
+        conn.commit()
+        conn.close()
+
+
+
+
+    # Takes a list of Stocks and gets quote data (real time) for them
+    @staticmethod
+    def get_real_time_quotes(stock_list):
+        symbol_list = [stock.symbol for stock in stock_list if type(stock) == Stock]
+        data = yahoostockdata.download_yahoo_quote_data(symbol_list)
+        for stock in stock_list:
+            if type(stock) == Stock:
+                stock.get_quote(data)
+
+
+
+
+
     # Table Loading Functions - One time use (Hopefully)
 
-    def load_cefs(self, delete_first=False):
+
+    def init_load_cefs(self, delete_first=False):
         ceflist = self.get_cef_list(refresh_from_web=True)
         return self.load_list(ceflist, "CEF", delete_first=delete_first)
 
 
 
-    def load_snp500(self, delete_first=False):
+    def init_load_snp500(self, delete_first=False):
         snplist = self.get_snp500_list(refresh_from_web=True)
         return self.load_list(snplist, "SNP", delete_first=delete_first)
 
 
 
-    def load_mlps(self, delete_first=False):
+    def init_load_mlps(self, delete_first=False):
         mlplist = self.get_mlp_list(refresh_from_web=True)
         return self.load_list(mlplist, "MLP", delete_first=delete_first)
 
@@ -163,14 +273,14 @@ class Datalayer():
 
 
 
-    def load_stock_listings(self):
+    def init_load_stock_listings(self):
         self.get_snp500_list(refresh_from_web=True)
         self.get_cef_list(refresh_from_web=True)
         self.get_mlp_list(refresh_from_web=True)
 
 
 
-    def load_categories(self):
+    def init_load_categories(self):
         category1 = Category(name="S&P 500", code="SNP")
         category2 = Category(name="Master Limited Partnership", code="MLP")
         category3 = Category(name="Closed End Fund", code="CEF")
@@ -184,7 +294,17 @@ class Datalayer():
 
 
 
-    def load_list(self, stocklist, stock_code, delete_first=False):
+
+    def init_load_div_analysis(self):
+        stock_list = self.get_stocks()
+        for stock in stock_list:
+            stock._analyze_dividend_history()
+        self.session.commit()
+        return stock_list
+
+
+
+    def init_load_list(self, stocklist, stock_code, delete_first=False):
 
         def _combine_dividend_and_distribution_info(div_row, dist_row):
             if type(dist_row) == list:
@@ -304,102 +424,6 @@ class Datalayer():
 
 
 
-    def get_cef_dividend_info(self, cef_symbol):
-        if not self.is_cef(cef_symbol):
-            raise Exception('Ticker symbol passed was not a CEF')
-
-        #header_list = get_web_stock_list('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr[1]/th/text()')
-        header_list = ['Ex-Date', 'NAV at Distribution', 'Long-Term Capital Gains', 'Short-Term Capital Gains', 'Dividend Income', 'Return of Capital', 'Distribution Total']
-        num_headers = len(header_list)
-
-        # Run through each column
-        table_data = self.get_web_table_info('https://screener.fidelity.com/ftgw/etf/snapshot/distributions.jhtml?symbols='+str(cef_symbol),'//*[contains(@class, "distributinos-capital-gains")]/table/tr/td/text()')
-        data_size = len(table_data)
-
-        if data_size % num_headers != 0:
-            raise Exception('Data in table does not match expected number of columns')
-
-        i = 0
-        row = 0
-        result = []
-        while i < data_size:
-            # fill in one row
-            result.append({})
-            for j in range(0,num_headers):
-                header_label = header_list[j]
-                value = table_data[i+j]
-                if header_label == 'Ex-Date':
-                    value = yahoostockdata.convert_to_date(value)
-                else:
-                    value = yahoostockdata.convert_to_float(value)
-
-                result[row][header_list[j]] = value
-            result[row]['Symbol'] = cef_symbol
-            row += 1
-            i += num_headers
-
-        return result
-
-
-    @staticmethod
-    def get_web_table_info(url, xpath):
-
-        def _get_result(url, xpath):
-            # try the new way
-            r = requests.get(url)
-            root = lxml.html.fromstring(r.content)
-            result = root.xpath(xpath)
-            return result
-
-        try:
-            # Try old way
-            # Use libxml to download the list of S&P500 companies and obtain the symbol table
-            page = lxml.html.parse(url)
-            result = page.xpath(xpath)
-        except:
-            try:
-                result = _get_result(url, xpath)
-            except ConnectionError:
-                # If I get a ConnectionError, try again and then give up
-                try:
-                    result = _get_result(url, xpath)
-                except ConnectionError:
-                    # Failed twice, skip and move on
-                    return []
-            except:
-                raise
-
-        result = [str(item) for item in result]
-
-        return result
-
-
-    @staticmethod
-    def add_new_column(table_name, new_column, column_type, default_val=None, database_name='beta.db'):
-        # Connecting to the database file
-        conn = sqlite3.connect(database_name)
-        c = conn.cursor()
-
-        if default_val == None:
-            c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct}"\
-                    .format(tn=table_name, cn=new_column, ct=column_type))
-        else:
-            c.execute("ALTER TABLE {tn} ADD COLUMN '{cn}' {ct} DEFAULT '{df}'"\
-                    .format(tn=table_name, cn=new_column, ct=column_type, df=default_val))
-
-        # Committing changes and closing the connection to the database file
-        conn.commit()
-        conn.close()
-
-
-    # Takes a list of Stocks and gets quote data (real time) for them
-    @staticmethod
-    def get_real_time_quotes(stock_list):
-        symbol_list = [stock.symbol for stock in stock_list if type(stock) == Stock]
-        data = yahoostockdata.download_yahoo_quote_data(symbol_list)
-        for stock in stock_list:
-            if type(stock) == Stock:
-                stock.get_quote(data)
 
 
 # http://stackoverflow.com/questions/5022066/how-to-serialize-sqlalchemy-result-to-json
@@ -525,9 +549,9 @@ class Stock(Base, JsonServices):
 
     # Relationships to other ORM classes
     dividends = relationship("Dividend", backref='stock',
-                    cascade="all, delete, delete-orphan")
+                    cascade="all, delete, delete-orphan", order_by="desc(Dividend.dividend_date)")
     notes = relationship("Note", backref='stock',
-                    cascade="all, delete, delete-orphan")
+                    cascade="all, delete, delete-orphan", order_by="Note.create_date")
     # Quote fields -- these fields are not in the database and are always updated 'live' via some other services
     last_price = 0.0
     year_low = 0.0
@@ -542,6 +566,7 @@ class Stock(Base, JsonServices):
         self.year_low = data[self.symbol]['YearLow']
         self.year_high = data[self.symbol]['YearHigh']
         self.trailing_div =  data[self.symbol]['TrailingAnnualDividendYield']
+        self.eps = data[self.symbol]['DilutedEPS']
 
 
     # Calculations
@@ -714,6 +739,7 @@ class Stock(Base, JsonServices):
 
             # We found last year of growth - now translate that to last index to search for growth in: Not sure if I should search one year beyond or not. You get problems either way
             div_hist = [div for div in div_hist if div.dividend_date.year >= last_year_of_growth]
+
             last_index = len(div_hist)-1
 
             # Now find last dividend of growth within restricted range
@@ -840,6 +866,7 @@ class Note(Base, JsonServices):
 
     id = Column(Integer, primary_key=True)
     stock_id = Column(Integer, ForeignKey('stock.id'))
+    create_date = Column(DateTime)
     note = Column(String)
     url = Column(String)
 

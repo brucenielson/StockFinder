@@ -543,9 +543,21 @@ class Stock(Base, JsonServices):
     trailing_div = Column(Float)
     last_dividend_date = Column(Float)
     last_ex_dividend_date = Column(Float)
-    # Dividend analysis attributes
+
+    # Dividend analysis attributes that are saved to database
     years_dividends = Column(Float)
     years_div_growth = Column(Float)
+    _dividends_no_bonus = None
+    _start_of_div_growth_index = None
+    _div_growth_start_date = None
+    _total_div_growth_amt = None
+    _total_div_growth_rate = None
+    _div_growth_20 = None
+    _div_growth_15 = None
+    _div_growth_10 = None
+    _div_growth_5 = None
+    _div_growth_3 = None
+    _div_growth_1 = None
 
     # Relationships to other ORM classes
     dividends = relationship("Dividend", backref='stock',
@@ -590,18 +602,27 @@ class Stock(Base, JsonServices):
             return 0.0
 
 
-    # Dividend history analysis methods and instance variables
-    _dividends_no_bonus = None
-    _start_of_div_growth_index = None
-    _div_growth_start_date = None
-    _total_div_growth_amt = None
-    _total_div_growth_rate = None
-    _div_growth_20 = None
-    _div_growth_15 = None
-    _div_growth_10 = None
-    _div_growth_5 = None
-    _div_growth_3 = None
-    _div_growth_1 = None
+    def payout_ratio(self):
+        if self.eps != None and self.eps >= 0.0 and self.trailing_div != None:
+            return float(self.trailing_div) / float(self.eps)
+        else:
+            return None
+
+
+    def adjusted_div(self):
+        if self.div_yield() != None and self.eps != None and self.eps >= 0.0:
+            return min(self.trailing_div, self.eps*0.6)
+        else:
+            return None
+
+
+    def adjusted_yield(self):
+        if self.adjusted_div() != None and self.last_price != None and self.last_price != 0:
+            return float(self.adjusted_div()) / float(self.last_price)
+        else:
+            return 0.0
+
+
 
     def _analyze_dividend_history(self):
 

@@ -264,19 +264,19 @@ class Datalayer():
 
     def init_load_cefs(self, delete_first=False):
         ceflist = self.get_cef_list(refresh_from_web=True)
-        return self.load_list(ceflist, "CEF", delete_first=delete_first)
+        return self.init_load_list(ceflist, "CEF", delete_first=delete_first)
 
 
 
     def init_load_snp500(self, delete_first=False):
         snplist = self.get_snp500_list(refresh_from_web=True)
-        return self.load_list(snplist, "SNP", delete_first=delete_first)
+        return self.init_load_list(snplist, "SNP", delete_first=delete_first)
 
 
 
     def init_load_mlps(self, delete_first=False):
         mlplist = self.get_mlp_list(refresh_from_web=True)
-        return self.load_list(mlplist, "MLP", delete_first=delete_first)
+        return self.init_load_list(mlplist, "MLP", delete_first=delete_first)
 
 
 
@@ -301,7 +301,11 @@ class Datalayer():
         return self.session.query(Category).all()
 
 
-
+    def init_load_database(self):
+        self.init_load_categories()
+        self.init_load_stock_listings()
+        self.init_load_snp500()
+        self.init_load_div_analysis()
 
 
     def init_load_div_analysis(self):
@@ -353,7 +357,7 @@ class Datalayer():
         # Persist data to database
         for symbol in data:
             stock = data[symbol]
-            stock_row = Stock(symbol=symbol, company_name=stock['Name'], company_start=stock['start'])
+            stock_row = Stock(symbol=symbol, company_name=stock['Name'], company_start=stock['start'], quote_div=stock['DividendShare'], eps=stock['EarningsShare'])
 
             # Get old data that isn't scrapped any more
             old_data = stockdatabase.retrieve_stock_list_from_db(symbol, 'stocksdataold.db')
@@ -550,6 +554,7 @@ class Stock(Base, JsonServices):
     # Key Stats - Dividends
     forward_div = Column(Float)
     trailing_div = Column(Float)
+    quote_div = Column(Float)
     last_dividend_date = Column(Float)
     last_ex_dividend_date = Column(Float)
 
@@ -557,17 +562,13 @@ class Stock(Base, JsonServices):
     years_dividends = Column(Float)
     years_div_growth = Column(Float)
     start_of_div_growth_index = Column(Integer)
-    total_div_growth_rate = Column(Float)
-    div_growth_20 = Column(Float)
-    div_growth_15 = Column(Float)
-    div_growth_10 = Column(Float)
-    div_growth_5 = Column(Float)
-    div_growth_3 = Column(Float)
-    div_growth_1 = Column(Float)
-    # Dividend analysis attributes not saved to the database
-    _dividends_no_bonus = None
-    _div_growth_start_date = None
-    _total_div_growth_amt = None
+    div_growth_start_date = Column(DateTime)
+    recent_div_growth = Column(Float)
+    projected_growth = Column(Float)
+    projected_div_adj = Column(Float)
+    projected_div = Column(Float)
+    target_price = Column(Float)
+
 
     # Relationships to other ORM classes
     dividends = relationship("Dividend", backref='stock',
@@ -578,7 +579,6 @@ class Stock(Base, JsonServices):
     last_price = 0.0
     year_low = 0.0
     year_high = 0.0
-    trailing_div = 0.0
 
     # Get a real time stock quote
     def get_quote(self, data=None):
@@ -587,11 +587,57 @@ class Stock(Base, JsonServices):
         self.last_price = data[self.symbol]['LastTradePriceOnly']
         self.year_low = data[self.symbol]['YearLow']
         self.year_high = data[self.symbol]['YearHigh']
-        self.trailing_div =  data[self.symbol]['TrailingAnnualDividendYield']
+        self.quote_div =  data[self.symbol]['TrailingAnnualDividendYield']
         self.eps = data[self.symbol]['DilutedEPS']
 
 
     # Calculations
+    # Calling current dividend tries to find the "best" dividend to return, starting with a future projected one
+    # But settling for whatever it can find
+    def current_div(self):
+        return self.quote_div
+
+
+
+    def projected_rate_adj(self):
+        projected_div_adj = self.projected_div_adj
+        if self.last_price != None and projected_div_adj != None:
+            return projected_div_adj / self.last_price
+        else:
+            return None
+
+
+
+
+    def projected_rate(self):
+        projected_div = self.projected_div
+        if self.last_price != None and projected_div != None:
+            return projected_div / self.last_price
+        else:
+            return None
+
+
+
+
+    def div_adj(self):
+        if self.current_div() != None and self.eps != None:
+            max_div = max([0, self.eps]) * 0.6 # 60% payout ratio
+            return min([max_div, self.current_div()])
+        else:
+            return None
+
+
+
+
+
+    def percent_to_target(self):
+        target_price = self.target_price()
+        if self.last_price != None and target_price != None:
+            return (self.last_price - target_price) / self.last_price
+        else:
+            return None
+
+
     def cash_per_share(self):
         if self.total_cash != None and self.num_shares != None and self.num_shares != 0:
             return float(self.total_cash) / float(self.num_shares)
@@ -605,54 +651,114 @@ class Stock(Base, JsonServices):
         else:
             return None
 
+
     def div_yield(self):
-        if self.trailing_div != None and self.last_price != None and self.last_price != 0:
-            return float(self.trailing_div) / float(self.last_price)
+        if self.current_div() != None and self.last_price != None and self.last_price != 0:
+            return float(self.current_div()) / float(self.last_price)
         else:
             return 0.0
 
 
     def payout_ratio(self):
-        if self.eps != None and self.eps >= 0.0 and self.trailing_div != None:
-            return float(self.trailing_div) / float(self.eps)
+        if self.eps != None and self.eps > 0.0 and self.current_div() != None:
+            return float(self.current_div()) / float(self.eps)
         else:
             return None
 
 
     def adjusted_div(self):
-        if self.div_yield() != None and self.eps != None and self.eps >= 0.0:
-            return min(self.trailing_div, self.eps*0.6)
+        if self.eps != None and self.eps > 0.0 and self.current_div() != None:
+            return min(self.current_div(), self.eps*0.6)
         else:
             return None
 
 
     def adjusted_yield(self):
-        if self.adjusted_div() != None and self.last_price != None and self.last_price != 0:
-            return float(self.adjusted_div()) / float(self.last_price)
+        adjusted_div = self.adjusted_div()
+        if adjusted_div != None and self.last_price != None and self.last_price != 0:
+            return float(adjusted_div) / float(self.last_price)
         else:
             return 0.0
 
 
-
-    # Public interface for dividend attributes
-    def recent_div_growth(self):
-        list_growths = []
-        if self.div_growth_1 != None:
-            list_growths.append(self.div_growth_1)
-        if self.div_growth_3 != None:
-            list_growths.append(self.div_growth_3)
-        if self.div_growth_1 != None:
-            list_growths.append(self.div_growth_1)
-
-        if len(list_growths) > 0:
-            return min(list_growths)
+    def target_price(self):
+        projected_div_adj = self.projected_div_adj
+        if self.last_price != None and projected_div_adj != None:
+            target_price = projected_div_adj / .05
+            if self.last_price < target_price:
+                return self.last_price
+            else:
+                return target_price
         else:
             return None
+
+
+
+    # Public interface for dividend attributes
+    def total_div_growth_rate(self):
+        if self.years_div_growth >= 1.0:
+            most_recent_div = self.dividends[0]
+            div_growth_start_div = self.dividends[self.start_of_div_growth_index]
+            total_div_growth_amt = float(most_recent_div.dividend) - float(div_growth_start_div.dividend)
+            return total_div_growth_amt / float(div_growth_start_div.dividend)
+        else:
+            return None
+
+
+
+    # Find the dividend amount a number of 'years' ago. Since years is not likely to be exact, find the first dividend
+    # on or just before that number of years and return it
+    def div_growth(self, years):
+
+        def _years_ago(years, from_date=None):
+            if from_date is None:
+                from_date = datetime.datetime.now()
+            try:
+                years = int(years)
+                return from_date.replace(year=from_date.year - years)
+            except:
+                # Must be 2/29!
+                assert from_date.month == 2 and from_date.day == 29 # can be removed
+                return from_date.replace(month=2, day=28, year=from_date.year-years)
+
+
+
+        if self.years_div_growth >= years:
+            div_hist = self.dividends
+            # Get most recent div
+            most_recent_div = div_hist[0]
+            most_recent_date = most_recent_div.dividend_date
+            # Search for dividend years ago (minus 5 days to try to capture slight differences in date for ex-dividend)
+            target_date = _years_ago(years, most_recent_date) - datetime.timedelta(days=5)
+            for div in div_hist:
+                div_date = div.dividend_date
+                if div_date <= target_date:
+                    div_growth_amt = float(most_recent_div.dividend) - float(div.dividend)
+                    div_growth_rate = div_growth_amt / float(div.dividend)
+                    return float(div_growth_rate) / float(years)
+
+            # We ran out of dividends, so just take the very first one:
+            div_hist_len = len(div_hist)
+            div = div_hist[div_hist_len-1]
+            div_growth_amt = float(most_recent_div.dividend) - float(div.dividend)
+            div_growth_rate = div_growth_amt / float(div.dividend)
+            return float(div_growth_rate) / float(years)
+        else:
+            return None
+
+
+
+
+    def dividends_no_bonus(self):
+        return [div for div in self.dividends if div.is_bonus_dividend == False or div.is_bonus_dividend == None]
 
 
     def __repr__(self):
         return "<Stock(symbol='%s', company_name='%s', id='%s')>" % \
                (self.symbol, self.company_name, self.id)
+
+
+
 
 
 class Dividend(Base, JsonServices):
@@ -669,8 +775,8 @@ class Dividend(Base, JsonServices):
     dividend_income = Column(Float, nullable=True)
     return_of_capital = Column(Float, nullable=True)
     # Dividend analysis attributes
-    is_bonus_dividend = False # Column(Boolean, nullable=False, default=False)
-    is_start_of_growth = False # Column(Boolean, nullable=False, default=False)
+    is_bonus_dividend = Column(Boolean, nullable=False, default=False)
+    is_start_of_growth = Column(Boolean, nullable=False, default=False)
 
     def __repr__(self):
         return "<Stock(symbol='%s', dividend_date='%s', dividend='%s', id='%s')>" % \

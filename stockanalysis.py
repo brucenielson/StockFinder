@@ -383,45 +383,6 @@ def analyze_dividend_history(stock):
 
 
 
-
-        def years_ago(years, from_date=None):
-            if from_date is None:
-                from_date = datetime.datetime.now()
-            try:
-                years = int(years)
-                return from_date.replace(year=from_date.year - years)
-            except:
-                # Must be 2/29!
-                assert from_date.month == 2 and from_date.day == 29 # can be removed
-                return from_date.replace(month=2, day=28, year=from_date.year-years)
-
-
-        # Find the dividend amount a number of 'years' ago. Since years is not likely to be exact, find the first dividend
-        # on or just before that number of years and return it
-        def get_div_growth(div_hist, years):
-            # Get most recent div
-            most_recent_div = div_hist[0]
-            most_recent_date = most_recent_div.dividend_date
-            # Search for dividend years ago (minus 5 days to try to capture slight differences in date for ex-dividend)
-            target_date = years_ago(years, most_recent_date) - datetime.timedelta(days=5)
-            for div in div_hist:
-                div_date = div.dividend_date
-                if div_date <= target_date:
-                    div_growth_amt = float(most_recent_div.dividend) - float(div.dividend)
-                    div_growth_rate = div_growth_amt / float(div.dividend)
-                    return div_growth_rate
-
-            # We ran out of dividends, so just take the very first one:
-            div_hist_len = len(div_hist)
-            div = div_hist[div_hist_len-1]
-            div_growth_amt = float(most_recent_div.dividend) - float(div.dividend)
-            div_growth_rate = div_growth_amt / float(div.dividend)
-            return div_growth_rate
-
-
-
-
-
         def create_div_totals_by_year(div_hist):
             current_year = datetime.datetime.now().year
             last_index = len(div_hist)-1
@@ -435,7 +396,6 @@ def analyze_dividend_history(stock):
                     divs_per_year.append((year, tot_per_year))
 
             return divs_per_year
-
 
 
 
@@ -503,66 +463,102 @@ def analyze_dividend_history(stock):
 
 
 
-
-
         # Determine how long the stock has paid dividends for
         if len(stock.dividends) < 1:
             return
         div_hist = stock.dividends
-        most_recent_div_date = div_hist[0].dividend_date
+        #most_recent_div_date = div_hist[0].dividend_date
+        today =datetime.datetime.today()
         last_index = len(div_hist)-1
         # If this stock has only one dividend, then abort
         if last_index == 0:
             return
 
         start_div_date = div_hist[last_index].dividend_date
-        div_hist_len = ((most_recent_div_date - start_div_date).days / 365.25)
+        div_hist_len = ((today - start_div_date).days / 365.25)
         stock.years_dividends = div_hist_len
 
         # Determine Dividend Growth
+
         # "dividend growth" is misleading here. We're really looking for growth or stability.
         # So what this function really does is look for a dividend in the past that is larger than the ones that come after it
         mark_bonus_dividends(div_hist)
-        # make a list of dividends without bonuses
-        stock._dividends_no_bonus = [div for div in div_hist if div.is_bonus_dividend == False]
 
         # What's the real dividend per year? (Not including current year because its only partially complete and thus always too low)
-        tot_divs_per_year_no_bonus = create_div_totals_by_year(stock._dividends_no_bonus)[1:]
-        tot_divs_per_year = create_div_totals_by_year(div_hist)[1:]
+        tot_divs_per_year_no_bonus = create_div_totals_by_year(stock.dividends_no_bonus())[1:]
+        #tot_divs_per_year = create_div_totals_by_year(div_hist)[1:]
 
         # TODO Calculate a trailing year of dividends not including bonus dividends
 
-        stock.start_of_div_growth_index = find_start_of_div_growth(stock._dividends_no_bonus, tot_divs_per_year_no_bonus)
+        stock.start_of_div_growth_index = find_start_of_div_growth(stock.dividends_no_bonus(), tot_divs_per_year_no_bonus)
         div_growth_start_div = stock.dividends[stock.start_of_div_growth_index]
-        stock._div_growth_start_date = div_growth_start_div.dividend_date
-        stock.years_div_growth = ((most_recent_div_date - stock._div_growth_start_date).days / 365.25)
+        stock.div_growth_start_date = div_growth_start_div.dividend_date
+        stock.years_div_growth = ((today - stock.div_growth_start_date).days / 365.25)
 
-        # Determine Total Growth
-        if stock.years_div_growth >= 1.0:
-            most_recent_div = div_hist[0]
-
-            stock._total_div_growth_amt = float(most_recent_div.dividend) - float(div_growth_start_div.dividend)
-            stock.total_div_growth_rate = stock._total_div_growth_amt / float(div_growth_start_div.dividend)
-            # Growth amounts by year
-            if stock.years_div_growth >= 20.0:
-                stock.div_growth_20 = get_div_growth(div_hist, 20) / 20.0
-            if stock.years_div_growth >= 15.0:
-                stock.div_growth_15  = get_div_growth(div_hist, 15) / 15.0
-            if stock.years_div_growth >= 10.0:
-                stock.div_growth_10  = get_div_growth(div_hist, 10) / 10.0
-            if stock.years_div_growth >= 5.0:
-                stock.div_growth_5  = get_div_growth(div_hist, 5) / 5.0
-            if stock.years_div_growth >= 3.0:
-                stock.div_growth_3 = get_div_growth(div_hist, 3) / 3.0
-            if stock.years_div_growth >= 1.0:
-                stock.div_growth_1  = get_div_growth(div_hist, 1)
+        # Create data for target analysis
+        stock.recent_div_growth = recent_div_growth(stock)
+        stock.projected_growth = projected_growth(stock)
+        stock.projected_div_adj = projected_div_adj(stock)
+        stock.projected_div = projected_div(stock)
+        #stock.target_price = target_price(stock)
 
 
 
 
+def projected_div(stock):
+    projected_growth = stock.projected_growth
+    if stock.current_div() != None and projected_growth != None:
+        return float(stock.current_div()) + (stock.current_div() * stock.projected_growth) * 5.0
+    else:
+        return None
 
 
-def get_stock_target_analysis(data):
+
+def projected_div_adj(stock):
+    projected_growth = stock.projected_growth
+    div_adj = stock.div_adj()
+    if stock.current_div() != None and div_adj != None and projected_growth != None:
+        return float(div_adj) + (div_adj * projected_growth) * 5.0
+    else:
+        return None
+
+
+
+
+def projected_growth(stock):
+    # If 3 year growth is greater than 1 year growth, then assume "recent growth" will drop off by equivalant amount
+    div_growth_1 = stock.div_growth(1)
+    div_growth_2 = stock.div_growth(2)
+    recent_div_growth = stock.recent_div_growth
+    if div_growth_2 != None and div_growth_1 != None and div_growth_2 > div_growth_1:
+        diff = div_growth_2 - div_growth_1
+        projected_growth = recent_div_growth - diff
+        if projected_growth < 0.0:
+            return 0.0
+        else:
+            return projected_growth
+    else:
+        if recent_div_growth != None:
+            return recent_div_growth
+
+
+def recent_div_growth(stock):
+    list_growths = []
+    if stock.div_growth(3) != None:
+        list_growths.append(stock.div_growth(3))
+    if stock.div_growth(2) != None:
+        list_growths.append(stock.div_growth(2))
+    if stock.div_growth(1) != None:
+        list_growths.append(stock.div_growth(1))
+    if len(list_growths) > 0:
+        return min(list_growths)
+    else:
+        return None
+
+
+
+
+def get_stock_target_analysis_yahoo_data(data):
     for symbol in data.keys():
         stock = data[symbol]
         stock['ProjectedRateAdjusted'] = 0.0
@@ -606,8 +602,6 @@ def get_stock_target_analysis(data):
                 # We want a dividend that is making at least 5% in 5 years
                 stock['TargetPrice'] = min([stock['LastTradePriceOnly'], projected_div_adj / .05])
                 stock['PercentToTarget'] = (stock['LastTradePriceOnly'] - stock['TargetPrice']) / stock['LastTradePriceOnly']
-
-
 
 
 

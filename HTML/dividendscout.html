@@ -85,36 +85,40 @@
             <th>Price</th>
             <th>Dividend</th>
             <th>Yield</th>
+            <th>Yrs Grw</th>
+            <th>Grw%</th>
             <th>EPS</th>
             <th>Payout</th>
             <th>Adj Div</th>
             <th>Adj Yield</th>
-            <th>Div Grw</th>
-            <th>Yrs Div Gr</th>
             <th>Name</th>
             <th>Sector</th>
             <th>Industry</th>
             <th>Low</th>
             <th>High</th>
+            <th>Target</th>
         </tr>
       </thead>
       <tbody>
         <tr data-ng-repeat="stock in divdata.stocks">
             <td>{{stock.symbol}}</td>
             <td>{{stock.last_price | currency}}</td>
-            <td>{{stock.trailing_div | currency}}</td>
+            <td>{{stock.current_div | currency}}</td>
             <td>{{stock.div_yield * 100.0 | number:2}}%</td>
+            <td>{{stock.years_div_growth | number:1}}</td>
+            <td>{{stock.recent_div_growth * 100 | number:1}}%</td>
             <td>{{stock.eps | currency}}</td>
             <td data-ng-class="{red: stock.payout_ratio > 0.6, black: stock.payout_ratio <= 0.6}">{{stock.payout_ratio * 100.0  | number:0}}%</td>
             <td>{{stock.adjusted_div | currency}}</td>
             <td>{{stock.adjusted_yield * 100 | number:2}}%</td>
-            <td>{{stock.recent_div_growth * 100 | number:1}}%</td>
-            <td>{{stock.years_div_growth | number:1}}</td>
             <td>{{stock.company_name}}</td>
             <td>{{stock.sector}}</td>
             <td>{{stock.industry}}</td>
             <td>{{stock.year_low | currency}}</td>
             <td>{{stock.year_high | currency}}</td>
+            <td data-ng-class="{darkgreen: stock.percent_to_target == 0.0, green: stock.percent_to_target <= 0.05 && stock.percent_to_target > 0.0,
+                yellowgreen: stock.percent_to_target <= 0.1 && stock.percent_to_target > 0.05, yellow: stock.percent_to_target <= 0.2 && stock.percent_to_target > 0.1,
+                black: stock.percent_to_target > 0.2}">{{stock.target_price | currency}}</td>
         </tr>
       </tbody>
     </table>

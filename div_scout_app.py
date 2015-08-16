@@ -11,11 +11,9 @@ def get_results(list_code):
     start_time = time.clock()
     filter_fields = ['symbol', 'sector', 'industry', 'eps', 'last_price', 'year_low', 'year_high', 'current_div', 'company_name', 'div_yield', \
                      'years_div_growth', 'adjusted_div', 'div_warning', 'payout_ratio', 'adjusted_yield', 'recent_div_growth', 'target_price', 'percent_to_target', \
-                     'projected_div_adj', 'projected_growth', 'projected_rate_adj']
+                     'projected_div_adj', 'projected_growth', 'projected_rate_adj', 'id']
     stock_list = database.get_stocks_by_code(list_code.upper())
     database.get_real_time_quotes(stock_list)
-    #for stock in stock_list:
-    #    stock._analyze_dividend_history()
     jsonifible = [stock.convert_to_jsonifible(filter_fields) for stock in stock_list]
     response = jsonify(records=jsonifible)
     end_time = time.clock()
@@ -27,7 +25,7 @@ def test_get_results():
     start_time = time.clock()
     filter_fields = ['symbol', 'sector', 'industry', 'eps', 'last_price', 'year_low', 'year_high', 'current_div', 'company_name', 'div_yield', \
                      'years_div_growth', 'adjusted_div', 'div_warning', 'payout_ratio', 'adjusted_yield', 'recent_div_growth', 'target_price', 'percent_to_target', \
-                     'projected_div_adj', 'projected_growth']
+                     'projected_div_adj', 'projected_growth', 'id']
     stock_list = database.get_stocks_by_code("SNP")[0:50]
     database.get_real_time_quotes(stock_list)
     jsonifible = [stock.convert_to_jsonifible(filter_fields) for stock in stock_list]

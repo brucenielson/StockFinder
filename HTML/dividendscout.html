@@ -77,64 +77,7 @@
         <h3 id="page_title">S&P 500 <small id="sub_title">Large Cap Dividend Stocks</small></h3>
     </div>
 
-    <div data-ng-view=""></div>
-
-
-    <!--
-    <div class="row" data-ng-controller="DivendScoutController as divdata">
-        <div class="col-md-10 table-responsive">
-        <table class="table-condensed table table-striped table-bordered table-hover">
-          <thead>
-            <tr>
-                <th>Symbol</th>
-                <th>Price</th>
-                <th>Dividend</th>
-                <th>Yield</th>
-                <th>Yrs Grw</th>
-                <th>Grw%</th>
-                <th>EPS</th>
-                <th>Payout</th>
-                <th>Adj Div</th>
-                <th>Adj Yield</th>
-                <th>Name</th>
-                <th>Sector</th>
-                <th>Industry</th>
-                <th>Low</th>
-                <th>High</th>
-                <th>Project Grw</th>
-                <th>Project Div</th>
-                <th>Project Rate</th>
-                <th>Target</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr data-ng-repeat="stock in divdata.stocks">
-                <td>{{stock.symbol}}</td>
-                <td>{{stock.last_price | currency}}</td>
-                <td>{{stock.current_div | currency}}</td>
-                <td>{{stock.div_yield * 100.0 | number:2}}%</td>
-                <td>{{stock.years_div_growth | number:1}}</td>
-                <td>{{stock.recent_div_growth * 100 | number:1}}%</td>
-                <td>{{stock.eps | currency}}</td>
-                <td data-ng-style="set_payout_color(stock.payout_ratio)">{{stock.payout_ratio * 100.0  | number:0}}%</td>
-                <td>{{stock.adjusted_div | currency}}</td>
-                <td>{{stock.adjusted_yield * 100 | number:2}}%</td>
-                <td>{{stock.company_name}}</td>
-                <td>{{stock.sector}}</td>
-                <td>{{stock.industry}}</td>
-                <td>{{stock.year_low | currency}}</td>
-                <td>{{stock.year_high | currency}}</td>
-                <td>{{stock.projected_growth *100 | number:2}}%</td>
-                <td>{{stock.projected_div_adj | currency}}</td>
-                <td>{{stock.projected_rate_adj * 100 | number:2}}%</td>
-                <td data-ng-style="set_target_color(stock.percent_to_target)">{{stock.target_price | currency}}</td>
-            </tr>
-          </tbody>
-        </table>
-        </div>
-
-    </div>
-    -->
+    <div data-ng-view></div>
 
 
 </body>

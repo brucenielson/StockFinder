@@ -5,6 +5,7 @@
       <thead>
         <tr>
             <th>Symbol</th>
+            <th>id</th>
             <th>Price</th>
             <th>Dividend</th>
             <th>Yield</th>
@@ -26,8 +27,9 @@
         </tr>
       </thead>
       <tbody>
-        <tr data-ng-repeat="stock in divdata.stocks">
+        <tr data-ng-repeat="stock in divdata.stocks" data-ng-dblclick="singleClick(stock.id)">
             <td>{{stock.symbol}}</td>
+            <td>{{stock.id}}</td>
             <td>{{stock.last_price | currency}}</td>
             <td>{{stock.current_div | currency}}</td>
             <td>{{stock.div_yield * 100.0 | number:2}}%</td>

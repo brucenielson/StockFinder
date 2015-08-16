@@ -1,40 +1,28 @@
-/*
-angular.module('divApp', [])
-  .controller('DivendScoutController', function($scope, $http) {
-    var divData = this;
-*/
+
 var app = angular.module('divApp', ['ngRoute']);
 
 // https://docs.angularjs.org/api/ngRoute/service/$route#example
 app.config(['$routeProvider',
   function ($routeProvider) {
-    console.log("in router");
+    //http://stackoverflow.com/questions/17967437/angularjs-calls-http-multiple-times-in-controller
     $routeProvider
         .when("/", {
-            templateUrl: "SNPList.html",
-            controller: "DivendScoutController"})
-        .when('/SNP/', {
-            templateUrl: 'SNPList.html',
-            controller: 'DivendScoutController'
-        })
-        .when('/route2/', {
-            templateUrl: 'StockDetail.html',
-            controller: 'DivendScoutController'
-        })
+            templateUrl: "SNPList.html"})
+        .when('/SNP', {
+            templateUrl: 'SNPList.html'})
+        .when('/details/', {
+            templateUrl: 'StockDetail.html'})
         .otherwise({
             redirectTo: '/'
         });
-   }]);
+
+  }]);
 
 
-app.controller('DivendScoutController', function($scope, $http) {
+app.controller('DivendScoutController', function($scope, $http, $location) {
   divData = this;
-  //$http.get("http://www.w3schools.com/angular/customers.php")
   $http.get("/data/SNP")
-  //$http.get("SNP.json")
     .success(function(response) {
-      //divData.names = response.records;
-      //console.log(response);
       divData.stocks = response['records']
     })
     .error(function(data, status, headers, config) {
@@ -70,5 +58,15 @@ app.controller('DivendScoutController', function($scope, $http) {
       return { background: "yellow" }
     }
   }
+
+  $scope.singleClick = function (stock_id) {
+    //window.alert("/detail/"+stock_id);
+    //go("/detail/"+stock_id)
+    $location.path( "details/" );
+  }
+
+  $scope.go = function ( path ) {
+    $location.path( path );
+  };
 
  });

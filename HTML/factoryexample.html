@@ -3,6 +3,15 @@
 <head>
     <title>AngularJS Routes example</title>
     <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.6/angular.min.js"></script>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <!-- Optional theme -->
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" type="text/css" href="css/custom.css">
+
 </head>
 
 <body ng-app="sampleApp">
@@ -28,7 +37,7 @@
                 controller: 'SimpleController'
             })
             .when('/route2/', {
-                templateUrl: 'view2.html',
+                templateUrl: 'SNPList.html',
                 controller: 'SimpleController'
             })
             .otherwise({
@@ -63,6 +72,7 @@
 
         return factory;
     });
+
 
 
 </script>

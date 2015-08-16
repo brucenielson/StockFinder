@@ -3,7 +3,29 @@ angular.module('divApp', [])
   .controller('DivendScoutController', function($scope, $http) {
     var divData = this;
 */
-var app = angular.module('divApp', []);
+var app = angular.module('divApp', ['ngRoute']);
+
+
+app.config(['$routeProvider',
+  function ($routeProvider) {
+    console.log("in router");
+    $routeProvider
+        .when("/", {
+            templateUrl: "SNPList.html",
+            controller: "DivendScoutController"})
+        .when('/SNP/', {
+            templateUrl: 'SNPList.html',
+            controller: 'DivendScoutController'
+        })
+        .when('/route2/', {
+            templateUrl: 'StockDetail.html',
+            controller: 'DivendScoutController'
+        })
+        .otherwise({
+            redirectTo: '/'
+        });
+   }]);
+
 
 app.controller('DivendScoutController', function($scope, $http) {
   divData = this;
@@ -48,6 +70,5 @@ app.controller('DivendScoutController', function($scope, $http) {
       return { background: "yellow" }
     }
   }
-
 
  });

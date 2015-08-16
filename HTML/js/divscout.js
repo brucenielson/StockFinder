@@ -5,7 +5,7 @@ angular.module('divApp', [])
 */
 var app = angular.module('divApp', ['ngRoute']);
 
-
+// https://docs.angularjs.org/api/ngRoute/service/$route#example
 app.config(['$routeProvider',
   function ($routeProvider) {
     console.log("in router");

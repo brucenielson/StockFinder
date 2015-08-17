@@ -35,6 +35,13 @@ def test_get_results():
 
 
 
+@app.route('/')
+def serve_index_html():
+    result = send_from_directory('HTML', 'index.html')
+    return result
+
+
+
 @app.route('/<path:path>')
 def serve_html(path):
     result = send_from_directory('HTML', path)

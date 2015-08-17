@@ -10,7 +10,7 @@ app.config(['$routeProvider',
             templateUrl: "SNPList.html"})
         .when('/SNP', {
             templateUrl: 'SNPList.html'})
-        .when('/details/', {
+        .when('/details/:id', {
             templateUrl: 'StockDetail.html'})
         .otherwise({
             redirectTo: '/'
@@ -19,7 +19,7 @@ app.config(['$routeProvider',
   }]);
 
 
-app.controller('DivendScoutController', function($scope, $http, $location) {
+app.controller('DividendScoutController', function($scope, $http, $location) {
   divData = this;
   $http.get("/data/SNP")
     .success(function(response) {
@@ -62,7 +62,7 @@ app.controller('DivendScoutController', function($scope, $http, $location) {
   $scope.singleClick = function (stock_id) {
     //window.alert("/detail/"+stock_id);
     //go("/detail/"+stock_id)
-    $location.path( "details/" );
+    $location.path( "details/"+stock_id );
   }
 
   $scope.go = function ( path ) {
@@ -70,3 +70,9 @@ app.controller('DivendScoutController', function($scope, $http, $location) {
   };
 
  });
+
+
+app.controller('StockDetailController', function($scope, $http, $location, $routeParams) {
+  detailData = this;
+  detailData.id = $routeParams.id;
+});

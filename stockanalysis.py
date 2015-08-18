@@ -199,8 +199,16 @@ def get_div_growth(div_hist, years):
             div_growth_rate = div_growth_amt / float(div['Dividends'])
             return div_growth_rate
 
-    # Raise an error if we don't find the right dividend
-    raise Exception("Not enough dividends in dividend history for " + str(years) +".")
+    # We didn't find a dividend within the years specified. This might just be because of the anamoly between how we measure years two ways.
+    div_hist_len = len(div_hist)
+    div = div_hist[div_hist_len-1]
+    if abs((target_date - div['Date']).days) <= 15:
+        div_growth_amt = float(most_recent_div['Dividends']) - float(div['Dividends'])
+        div_growth_rate = div_growth_amt / float(div['Dividends'])
+        return div_growth_rate
+    else:
+        # Raise an error if we don't find the right dividend
+        raise Exception("Not enough dividends in dividend history for " + str(years) +".")
 
 
 

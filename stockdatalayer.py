@@ -740,12 +740,12 @@ class Stock(Base, JsonServices):
             # We ran out of dividends, so just take the very first one:
             div_hist_len = len(div_hist)
             div = div_hist[div_hist_len-1]
-            div_growth_amt = float(most_recent_div.dividend) - float(div.dividend)
-            div_growth_rate = div_growth_amt / float(div.dividend)
-            return float(div_growth_rate) / float(years)
-        else:
-            return None
-
+            if abs((target_date - div.dividend_date).days) <= 15:
+                div_growth_amt = float(most_recent_div.dividend) - float(div.dividend)
+                div_growth_rate = div_growth_amt / float(div.dividend)
+                return div_growth_rate / float(years)
+            else:
+                None
 
 
 

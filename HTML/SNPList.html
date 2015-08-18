@@ -29,7 +29,6 @@
         <tr data-ng-repeat="stock in divdata.stocks" data-ng-dblclick="singleClick(stock.id)">
             <td>{{stock.symbol}}</td>
             <td>{{stock.last_price | currency}}</td>
-            <td>{{stock.last_price | currency}}</td>
             <td>{{stock.current_div | currency}}</td>
             <td>{{stock.div_yield * 100.0 | number:2}}%</td>
             <td>{{stock.years_div_growth | number:1}}</td>

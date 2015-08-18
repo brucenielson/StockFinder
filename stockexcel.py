@@ -29,7 +29,7 @@ def create_div_achievers_list(use_saved_snp=False):
 
     #Pre-Process Data
     stockanalysis.analyze_data(snp)
-    stockanalysis.get_stock_target_analysis(snp)
+    stockanalysis.get_stock_target_analysis_yahoo_data(snp)
 
     div_achievers_10 = stockanalysis.get_div_acheivers(snp, 10)
     create_stock_list_worksheet(div_achievers_10)
@@ -105,7 +105,7 @@ def create_custom_stock_list(list=None):
     data = yahoostockdata.get_combined_data(list)
 
     stockanalysis.analyze_data(data)
-    stockanalysis.get_stock_target_analysis(data)
+    stockanalysis.get_stock_target_analysis_yahoo_data(data)
     create_stock_list_worksheet(data)
 
     return data

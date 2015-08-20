@@ -565,6 +565,83 @@ def recent_div_growth(stock):
 
 
 
+def calc_my_basis_mlps():
+    purchases = []
+    date = datetime.datetime.strptime('10/7/2008',"%m/%d/%Y")
+    lot = {'symbol': 'OKS', 'date': date, 'shares': 2*2, 'cost': 87.0}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('10/8/2008',"%m/%d/%Y")
+    lot = {'symbol': 'OKS', 'date': date, 'shares': 5*2, 'cost': 185.0}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('10/8/2008',"%m/%d/%Y")
+    lot = {'symbol': 'OKS', 'date': date, 'shares': 5*2, 'cost': 187.5}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('10/8/2008',"%m/%d/%Y")
+    lot = {'symbol': 'OKS', 'date': date, 'shares': 5*2, 'cost': 202.85}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('11/25/2008',"%m/%d/%Y")
+    lot = {'symbol': 'OKS', 'date': date, 'shares': 2*2, 'cost': 86.23}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('3/6/2009',"%m/%d/%Y")
+    lot = {'symbol': 'OKS', 'date': date, 'shares': 28*2, 'cost': 1012.50}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('1/14/2009',"%m/%d/%Y")
+    lot = {'symbol': 'EEP', 'date': date, 'shares': 15*2, 'cost': 427.50}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('8/16/2015',"%m/%d/%Y")
+    lot = {'symbol': 'OKS', 'date': date, 'shares': 34, 'cost': 1014.75}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('6/12/2015',"%m/%d/%Y")
+    lot = {'symbol': 'RNO', 'date': date, 'shares': 752, 'cost': 990.07}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('4/15/2015',"%m/%d/%Y")
+    lot = {'symbol': 'ARLP', 'date': date, 'shares': 31, 'cost': 1007.49}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('8/16/2015',"%m/%d/%Y")
+    lot = {'symbol': 'AHGP', 'date': date, 'shares': 22, 'cost': 984.78}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('8/16/2015',"%m/%d/%Y")
+    lot = {'symbol': 'NS', 'date': date, 'shares': 20, 'cost': 1001.15}
+    purchases.append(lot)
+
+
+    mlps = ['OKS', 'EEP', 'RNO', 'AHGP', 'ARLP', 'NS']
+
+    for mlp in mlps:
+        total_cost = sum([lot['cost'] for lot in purchases if lot['symbol'] == mlp])
+        total_shares = sum([lot['shares'] for lot in purchases if lot['symbol'] == mlp])
+        print mlp.upper() + ' Price/Share: ' + str(total_cost / total_shares)
+        divs = collect_dividends(mlp, purchases)
+        print "Total Cost: " + str(total_cost) + "; Total Dividends: " + str(divs)
+        print "_________________________"
+
+
+
+
+def collect_dividends(symbol, purchases):
+    all_dividends = yahoostockdata.get_dividend_history_data(symbol)[symbol]['DividendHistory']
+    relevant = [purchase for purchase in purchases if purchase['symbol'] == symbol]
+
+    divs = 0
+    for purchase in relevant:
+        date = purchase['date']
+        shares = purchase['shares']
+        divs += (sum([div['Dividends'] for div in all_dividends if div['Date'] >= date]) * shares)
+
+    return divs
+
+
 
 def get_stock_target_analysis_yahoo_data(data):
     for symbol in data.keys():

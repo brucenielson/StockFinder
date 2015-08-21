@@ -603,11 +603,11 @@ def calc_my_basis_mlps():
     lot = {'symbol': 'RNO', 'date': date, 'shares': 752, 'cost': 990.07}
     purchases.append(lot)
 
-    date = datetime.datetime.strptime('4/15/2015',"%m/%d/%Y")
+    date = datetime.datetime.strptime('4/14/2015',"%m/%d/%Y")
     lot = {'symbol': 'ARLP', 'date': date, 'shares': 31, 'cost': 1007.49}
     purchases.append(lot)
 
-    date = datetime.datetime.strptime('8/16/2015',"%m/%d/%Y")
+    date = datetime.datetime.strptime('6/9/2015',"%m/%d/%Y")
     lot = {'symbol': 'AHGP', 'date': date, 'shares': 22, 'cost': 984.78}
     purchases.append(lot)
 
@@ -618,11 +618,35 @@ def calc_my_basis_mlps():
 
     mlps = ['OKS', 'EEP', 'RNO', 'AHGP', 'ARLP', 'NS']
 
-    for mlp in mlps:
-        total_cost = sum([lot['cost'] for lot in purchases if lot['symbol'] == mlp])
-        total_shares = sum([lot['shares'] for lot in purchases if lot['symbol'] == mlp])
-        print mlp.upper() + ' Price/Share: ' + str(total_cost / total_shares)
-        divs = collect_dividends(mlp, purchases)
+    output_divs(mlps, purchases)
+
+
+
+def calc_total_divs():
+    purchases = []
+    date = datetime.datetime.strptime('12/16/2014',"%m/%d/%Y")
+    lot = {'symbol': 'RCS', 'date': date, 'shares': 103, 'cost': 1006.11}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('12/10/2014',"%m/%d/%Y")
+    lot = {'symbol': 'PKO', 'date': date, 'shares': 38, 'cost': 1023.73}
+    purchases.append(lot)
+
+    date = datetime.datetime.strptime('02/17/2015',"%m/%d/%Y")
+    lot = {'symbol': 'PDI', 'date': date, 'shares': 35, 'cost': 1034.30}
+    purchases.append(lot)
+
+
+    stocks = ['RCS', 'PKO', 'PDI']
+    output_divs(stocks, purchases)
+
+
+def output_divs(stocks, purchases):
+    for stock in stocks:
+        total_cost = sum([lot['cost'] for lot in purchases if lot['symbol'] == stock])
+        total_shares = sum([lot['shares'] for lot in purchases if lot['symbol'] == stock])
+        print stock.upper() + ' Price/Share: ' + str(total_cost / total_shares)
+        divs = collect_dividends(stock, purchases)
         print "Total Cost: " + str(total_cost) + "; Total Dividends: " + str(divs)
         print "_________________________"
 

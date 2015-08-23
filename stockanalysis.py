@@ -25,7 +25,8 @@ import datetime
 
 #ALL_FIELDS = QUOTE_FIELDS + ", " + KEY_STATS_FIELDS + ", " + STOCK_FIELDS
 
-
+# Market cap to GDP (Warren Buffet Indicator)
+# https://research.stlouisfed.org/fred2/series/DDDM01USA156NWDB
 
 """
 def get_data(symbol_list):

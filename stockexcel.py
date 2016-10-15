@@ -59,7 +59,6 @@ def create_mlp_list(use_saved_mlp=False):
 
     div_achievers_10 = stockanalysis.get_div_acheivers(mlpdata, 10)
     create_stock_list_worksheet(div_achievers_10)
-
     return div_achievers_10
 
 

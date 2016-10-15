@@ -385,7 +385,7 @@ class Datalayer():
                     div_row = Dividend()
                     div_row.dividend_date = div['Date']
                     div_row.dividend = div['Dividends']
-                    if iscef:
+                    if iscef: 
                         # Find equivalent distribution row. Check that date is within 3 days and dividend and distribution match within a penny
                         possible_days = []
                         for i in range(-3, 4, 1):

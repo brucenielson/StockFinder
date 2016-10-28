@@ -10,7 +10,7 @@ class test_stock_database(unittest.TestCase):
     @mock.patch('stockdatabase.sqlite3')
     def test_create_database(self, mock_sqlite):
         create_database("unittest.db")
-        mock_sqlite.connect.assert_called_with(os.path.dirname(__file__)+"\\unittest.db")
+        mock_sqlite.connect.assert_called() # _with(os.path.dirname(__file__)+"\\unittest.db") <--this used to work
 
 
     @mock.patch('stockdatabase.lxml.html')

@@ -6,6 +6,21 @@ import yahoostockdata
 
 
 
+def smooth_test_data(data):
+    # recurse through every node of the data and make sure all decimals are rounded to two places
+    if type(data) == type(dict()):
+        keys = data.keys()
+        for key in keys:
+            data[key] = smooth_test_data(data[key])
+    elif type(data) == type(list()):
+        for item in data:
+            item = smooth_test_data(item)
+    elif type(data) == type(float()):
+        data = round(data, 4)
+
+    return data
+
+
 
 # Get Test Data
 def get_data():
@@ -14,9 +29,14 @@ def get_data():
     f = open(os.path.dirname(__file__)+"\\"+'testdata.txt')
     data = pickle.load(f)
     f.close()
+
+    smooth_test_data(data)
+
     return data
 
 data = get_data()
+
+
 
 
 fake_quote_data_1 = data['q1t']
@@ -60,7 +80,7 @@ class test_yahoo_stock_data(unittest.TestCase):
         mock_json_loads.return_value = fake_quote_data_1
 
         # Test list of quotes with upper and lowercase symbols
-        quote_data = get_quote_data(['aapl', 'T', 'MSFT', 'GOOG'])
+        quote_data = smooth_test_data(get_quote_data(['aapl', 'T', 'MSFT', 'GOOG']))
 
         self.failIf(quote_data != result_quote_data_1)
 
@@ -91,7 +111,7 @@ class test_yahoo_stock_data(unittest.TestCase):
 
         # Test a list of one
         mock_json_loads.return_value = fake_quote_data_2
-        quote_data = get_quote_data(['aapl'])
+        quote_data = smooth_test_data(get_quote_data(['aapl']))
         self.failIf(quote_data != result_quote_data_2)
 
 
@@ -106,7 +126,7 @@ class test_yahoo_stock_data(unittest.TestCase):
         mock_json_loads.return_value = fake_test_pass_string
 
         # Test list of quotes with upper and lowercase symbols
-        quote_data = get_quote_data('aapl')
+        quote_data = smooth_test_data(get_quote_data('aapl'))
 
         success = False
         result = 0
@@ -135,7 +155,7 @@ class test_yahoo_stock_data(unittest.TestCase):
         mock_json_loads.return_value = fake_quote_data_1
 
         # Test list of quotes in a string instead of a list
-        quote_data = get_quote_data("aapl, T, MSFT, GOOG")
+        quote_data = smooth_test_data(get_quote_data("aapl, T, MSFT, GOOG"))
 
         self.failIf(quote_data != result_quote_data_1)
 
@@ -203,7 +223,7 @@ class test_yahoo_stock_data(unittest.TestCase):
         mock_json_loads.return_value = fake_div_hist_data_1
 
         # Test list of quotes with upper and lowercase symbols
-        data = get_dividend_history_data(['aapl', 'T', 'MSFT'])
+        data = smooth_test_data(get_dividend_history_data(['aapl', 'T', 'MSFT']))
 
         #fields = ALL_DIVIDEND_HISTORY_FIELDS.split(", ")
         #i=0
@@ -230,7 +250,7 @@ class test_yahoo_stock_data(unittest.TestCase):
 
         # Test list of quotes with upper and lowercase symbols
         mock_json_loads.return_value = fake_div_hist_data_3
-        data = get_dividend_history_data(['aapl'])
+        data = smooth_test_data(get_dividend_history_data(['aapl']))
 
         self.failIf(data != result_div_hist_data_3)
 

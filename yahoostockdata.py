@@ -498,7 +498,8 @@ def execute_yql(yql):
     #print yql
     url = "http://query.yahooapis.com/v1/public/yql?q=" \
             + urllib2.quote(yql) \
-            + "&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
+            + "&diagnostics=true&env=store%3A%2F%2Fdatatables.org%2Falltableswithkeys&format=json"
+            #"&format=json&env=http%3A%2F%2Fdatatables.org%2Falltables.env&callback="
 
     try:
         result = urllib2.urlopen(url)
